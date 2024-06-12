@@ -12,6 +12,8 @@ typedef struct{
 
 File file_open(const char* file_name);
 
+void file_end_line(File* f);
+
 char file_next_char(File* f);
 
 char file_peek(File* f);

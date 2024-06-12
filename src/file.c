@@ -38,6 +38,14 @@ char file_peek(File* f){
     return EOF;
 }
 
+
+//skips to end of a line in a file
+void file_end_line(File* f){
+    while(file_next_char(f) != '\n'){
+        
+    }
+}
+
 void file_close(File* f){
     if(f->isOpen){
         fclose(f->stream);
