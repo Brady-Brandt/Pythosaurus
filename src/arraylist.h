@@ -9,11 +9,20 @@ typedef struct{
    int capacity;
 } ArrayList;
 
+#define DEFAULT_ARRAY_LIST (ArrayList){NULL, 0, 0}
 
 #define array_list_create(list, type) \
 do { \
     list.size = 0; \
     list.capacity = DEFAULT_ARRAY_LIST_SIZE; \
+    list.data = malloc(sizeof(type) * list.capacity); \
+} while(0) 
+
+
+#define array_list_create_cap(list, type, cap) \
+do { \
+    list.size = 0; \
+    list.capacity = cap; \
     list.data = malloc(sizeof(type) * list.capacity); \
 } while(0) 
 
@@ -28,7 +37,7 @@ do { \
 #define array_list_append(list, type, value) \
     do { \
         if(list.size == list.capacity){ \
-            array_list_resize(list, value); \
+            array_list_resize(list, type); \
         } \
         type* temp = (type*)list.data; \
         temp[list.size] = value; \
