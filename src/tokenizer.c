@@ -21,14 +21,31 @@ void tokenizer_create(const char* file_name){
     array_list_create(tokenizer.tokens, Token);
     tokenizer.line = 1;
     tokenizer.file = f;
+    tokenizer.currentChar = '\0';
+    tokenizer.prevChar = '\0';
 }
 
 
-void token_delete(Token* t){
-    t->type = TOK_UNKOWN;
-    string_delete(&t->literal);
+
+static char next_char(){
+    tokenizer.prevChar = tokenizer.currentChar;
+    tokenizer.currentChar = file_next_char(&tokenizer.file);
+    return tokenizer.currentChar;
 }
 
+
+static char get_char(){
+    return tokenizer.currentChar;
+}
+
+
+static char peek_char(){
+    return file_peek(&tokenizer.file);
+}
+
+static char prev_char(){
+    return tokenizer.prevChar;
+}
 
 
 TokenType get_prev_token(){
@@ -36,11 +53,14 @@ TokenType get_prev_token(){
         Token t = array_list_get(tokenizer.tokens, Token, tokenizer.tokens.size - 1);
         return t.type;
     }
-    return TOK_UNKOWN;
+    return TOK_MAX;
 }
 
 
-
+void token_delete(Token* t){
+    t->type = TOK_UNKOWN;
+    string_delete(&t->literal);
+}
 
 static void add_token(TokenType type){
     Token token;
@@ -58,8 +78,11 @@ static void add_token_with_string(TokenType type, String* string){
     array_list_append(tokenizer.tokens, Token, token); 
 }
 
+
+
 /** 
  * Determing if the string is a keyword, float, int, or identifier 
+ * TODO: USE HASHMAP FOR BETTER PERFORMANCE
  */
 static void check_misc_string(String* string){
     //checking if we have an integer or a float 
@@ -225,42 +248,85 @@ void validate_enclosures(Stack* s, char closing){
     }
 }
 
+
+static void create_string_token(String* str){
+    if(str->size != 0){
+        check_misc_string(str);
+    }
+    //consume quote char 
+    next_char();
+    while(tokenizer.currentChar != '\"'){
+        string_push(str, tokenizer.currentChar);
+        next_char();
+
+        if(tokenizer.currentChar == EOF){
+            fprintf(stderr, "Unterminated string\n");
+            exit(1);
+        }
+    }
+
+    add_token_with_string(TOK_STRING, str);
+    string_clear(str);
+}
+
+//converts four spaces to a tab 
+static void spaces_to_tab(){
+    int space_counter = 0;
+    while(tokenizer.currentChar == ' '){
+        space_counter++;
+        if(space_counter == 4){
+            add_token(TOK_TAB);
+            space_counter = 0;
+        } 
+        if(peek_char() != ' ') break;
+        next_char();
+    }
+
+    if(space_counter != 0){
+        printf("%d\n", space_counter);
+        fprintf(stderr, "Invalid identation. Idents must be 4 spaces or a tab on line %d\n", tokenizer.line);
+        exit(1);
+    }
+}
+
+
+
+
+//checks to see if the next char makes it an assignment operator 
+//+= or if its is an = it becomes ==  
+#define check_assign(assign_tok, normal_tok, literal) \
+    if(peek_char() == '='){ \
+        add_token_check_misc(assign_tok, literal); \
+        next_char(); \
+    } else { \
+        add_token_check_misc(normal_tok, literal); \
+    } \
+
+
 ArrayList tokenize_file(){
 
     //holds a string, keyword, float, or int 
     String curr_literal = string_create();
-
     Stack enclosure_stack;
     stack_create(&enclosure_stack);
-    bool is_string = false;
 
 
     while(true) {
-        char c = file_next_char(&tokenizer.file); 
+        next_char();
 
-        if(is_string && c != '\n' && c != EOF){
-            if(c == '\"'){
-                validate_enclosures(&enclosure_stack, c); 
-                add_token_with_string(TOK_STRING, &curr_literal);
-                add_token(TOK_DQUOTE);
-                string_clear(&curr_literal);
-                is_string = false;
-            } else {
-                string_push(&curr_literal, c);
-            }
-
-            continue;
-        }
-
-        switch (c) {
-            case '=':
-                switch (file_peek(&tokenizer.file)) {
-                    case '=':
-                        add_token_check_misc(TOK_EQUAL, &curr_literal);
-                        break;
-                    default:
-                        add_token_check_misc(TOK_ASSIGN, &curr_literal);
+        //TODO: ADD MULTILINE COMMENTS
+        switch (tokenizer.currentChar) {
+            case ' ':
+                if(prev_char() == '\n'){
+                    spaces_to_tab();
+                } 
+                if(curr_literal.size != 0) {
+                        check_misc_string(&curr_literal);
+                        string_clear(&curr_literal);
                 }
+                break;
+            case '=':
+                check_assign(TOK_EQUAL, TOK_ASSIGN, &curr_literal); 
                 break;  
             case '\n':
                 if(get_prev_token() == TOK_NEW_LINE) break;
@@ -268,14 +334,18 @@ ArrayList tokenize_file(){
                 add_token_check_misc(TOK_NEW_LINE, &curr_literal);
                 break;
             case '\t':
+                if(get_prev_token() != TOK_NEW_LINE || get_prev_token() != TOK_TAB){
+                    fprintf(stderr, "Invalid block\n");
+                    exit(1);
+                }
                 add_token_check_misc(TOK_TAB, &curr_literal);
                 break;
             case '(':
-                stack_push(&enclosure_stack, c);
+                stack_push(&enclosure_stack, tokenizer.currentChar);
                 add_token_check_misc(TOK_LEFT_PAREN, &curr_literal);
                 break; 
             case ')':
-                validate_enclosures(&enclosure_stack, c);
+                validate_enclosures(&enclosure_stack, tokenizer.currentChar);
                 add_token_check_misc(TOK_RIGHT_PAREN, &curr_literal);
                 break; 
             case ':':
@@ -285,157 +355,149 @@ ArrayList tokenize_file(){
                 add_token_check_misc(TOK_COMMA, &curr_literal);
                 break;
             case '+':
-                switch (file_peek(&tokenizer.file)) {
-                    case '=':
-                        add_token_check_misc(TOK_ADD_ASSIGN, &curr_literal);
-                    default:
-                        add_token_check_misc(TOK_ADD, &curr_literal);
-                }
+                check_assign(TOK_ADD_ASSIGN, TOK_ADD, &curr_literal); 
                 break;
             case '-':
-                switch (file_peek(&tokenizer.file)) {
-                    case '=':
-                        add_token_check_misc(TOK_SUB_ASSIGN, &curr_literal);
-                    default:
-                        add_token_check_misc(TOK_SUB, &curr_literal);
-                }
+                check_assign(TOK_SUB_ASSIGN, TOK_SUB, &curr_literal);
                 break;
             case '*': {
-                switch (file_peek(&tokenizer.file)) {
-                    case '*':
-                      add_token_check_misc(TOK_EXP, &curr_literal);
-                      file_next_char(&tokenizer.file);
-                      break;
-                    case '=':
-                      add_token_check_misc(TOK_MUL_ASSIGN, &curr_literal);
-                      file_next_char(&tokenizer.file);
-                      break;
-                    default:
-                        add_token_check_misc(TOK_MUL, &curr_literal);
-              }
-                break;
-            }
-            case '!':
-                printf("Todo implemented not equal");
-                break;
-
+                          switch (peek_char()) {
+                              case '*':
+                                  next_char();
+                                  check_assign(TOK_EXP_ASSIGN, TOK_EXP, &curr_literal);
+                                  break;                                  break;
+                              case '=':
+                                  add_token_check_misc(TOK_MUL_ASSIGN, &curr_literal);
+                                  next_char();
+                                  break;
+                              default:
+                                  add_token_check_misc(TOK_MUL, &curr_literal);
+                          }
+                          break;
+                      }
+            case '!': {
+                          if(next_char() == '='){
+                              add_token_check_misc(TOK_NOT_EQUAL, &curr_literal);
+                          } else {
+                              fprintf(stderr, "Invalid token\n");
+                          }
+                          break;
+                      }
             case '/': {
-                      switch (file_peek(&tokenizer.file)) {
-                          case '/':
-                              add_token_check_misc(TOK_FLOOR_DIV, &curr_literal);
-                              file_next_char(&tokenizer.file);
-                              break;
-                          case '=':
-                              add_token_check_misc(TOK_DIV_ASSIGN, &curr_literal);
-                              file_next_char(&tokenizer.file);
-                              break;
-                          default:
-                              add_token_check_misc(TOK_DIV, &curr_literal);
+                          switch (peek_char()) {
+                              case '/':
+                                  next_char();
+                                  check_assign(TOK_FLOOR_DIV_ASSIGN, TOK_FLOOR_DIV, &curr_literal);
+                                  break;
+                              case '=':
+                                  add_token_check_misc(TOK_DIV_ASSIGN, &curr_literal);
+                                  next_char();
+                                  break;
+                              default:
+                                  add_token_check_misc(TOK_DIV, &curr_literal);
+                          }
+                          break;
                       }
-                      break;
-                  }
             case '%':
-                      switch (file_peek(&tokenizer.file)) {
-                          case '=':
-                              add_token_check_misc(TOK_MOD_ASSIGN, &curr_literal);
-                              break;
-                          default:
-                              add_token_check_misc(TOK_MOD, &curr_literal); 
-                      }
-                      break;
+                      check_assign(TOK_MOD_ASSIGN, TOK_MOD, &curr_literal);
+                      break; 
             case '<': {
-                      switch (file_peek(&tokenizer.file)) {
-                          case '=':
-                              add_token_check_misc(TOK_LESS_EQUAL, &curr_literal);
-                              file_next_char(&tokenizer.file);
-                              break;
-                          case '<':
-                              add_token_check_misc(TOK_LEFT_SHIFT, &curr_literal);
-                              file_next_char(&tokenizer.file);
-                              break;
-                          default:
-                              add_token_check_misc(TOK_LESS_THAN, &curr_literal);
+                          switch (peek_char()) {
+                              case '=':
+                                  add_token_check_misc(TOK_LESS_EQUAL, &curr_literal);
+                                  next_char();
+                                  break;
+                              case '<':
+                                  next_char();
+                                  check_assign(TOK_LEFT_SHIFT_ASSIGN, TOK_LEFT_SHIFT, &curr_literal);
+                                  break;
+                              default:
+                                  add_token_check_misc(TOK_LESS_THAN, &curr_literal);
+                          }
+                          break;
                       }
-                      break;
-                  }
             case '>': {
-                      switch (file_peek(&tokenizer.file)) {
-                          case '=':
-                              add_token_check_misc(TOK_GREATER_EQUAL, &curr_literal);
-                              file_next_char(&tokenizer.file);
-                              break;
-                          case '>':
-                              add_token_check_misc(TOK_RIGHT_SHIFT, &curr_literal);
-                              file_next_char(&tokenizer.file);
-                              break;
-                          default:
-                              add_token_check_misc(TOK_GREATER_THAN, &curr_literal); 
+                          switch (peek_char()) {
+                              case '=':
+                                  add_token_check_misc(TOK_GREATER_EQUAL, &curr_literal);
+                                  next_char();
+                                  break;
+                              case '>':
+                                  next_char();
+                                  check_assign(TOK_RIGHT_SHIFT_ASSIGN, TOK_RIGHT_SHIFT, &curr_literal);
+                                  break;
+                              default:
+                                  add_token_check_misc(TOK_GREATER_THAN, &curr_literal); 
+                          }
+                          break;
                       }
-                      break;
-                  }
-            case '\"':
-                      is_string = true;
-                      stack_push(&enclosure_stack, c);
-                      add_token_check_misc(TOK_DQUOTE, &curr_literal);
+            case '\"': 
+                      create_string_token(&curr_literal);
                       break;
             case '\'':
                       add_token_check_misc(TOK_SQUOTE, &curr_literal);
                       break;
             case '[': 
-                      stack_push(&enclosure_stack, c);
+                      stack_push(&enclosure_stack, tokenizer.currentChar);
                       add_token_check_misc(TOK_LEFT_BRACKET, &curr_literal);
                       break;
             case ']': 
-                      validate_enclosures(&enclosure_stack, c);
+                      validate_enclosures(&enclosure_stack, tokenizer.currentChar);
                       add_token_check_misc(TOK_RIGHT_BRACKET, &curr_literal);
                       break;
             case '{':   
-                    stack_push(&enclosure_stack, c);
-                    add_token_check_misc(TOK_LEFT_BRACE, &curr_literal);
-                    break;
+                      stack_push(&enclosure_stack, tokenizer.currentChar);
+                      add_token_check_misc(TOK_LEFT_BRACE, &curr_literal);
+                      break;
             case '}':
-                    validate_enclosures(&enclosure_stack, c);
-                    add_token_check_misc(TOK_RIGHT_BRACE, &curr_literal);
-                    break;
+                      validate_enclosures(&enclosure_stack, tokenizer.currentChar);
+                      add_token_check_misc(TOK_RIGHT_BRACE, &curr_literal);
+                      break;
+            case '#':
+                      add_token_check_misc(TOK_NEW_LINE, &curr_literal);
+                      file_end_line(&tokenizer.file);
+                      break;
             case '.':
                       add_token_check_misc(TOK_DOT, &curr_literal);
                       break;
             case '&':
-                      add_token_check_misc(TOK_BIT_AND, &curr_literal);
+                      check_assign(TOK_BIT_AND_ASSIGN, TOK_BIT_AND, &curr_literal);
                       break;
             case '|':
-                      add_token_check_misc(TOK_BIT_OR, &curr_literal);
+                      check_assign(TOK_BIT_OR_ASSIGN, TOK_BIT_OR, &curr_literal);
                       break;
             case '^':
-                      add_token_check_misc(TOK_BIT_XOR, &curr_literal);
+                      check_assign(TOK_BIT_XOR_ASSIGN, TOK_BIT_XOR, &curr_literal);
                       break;
             case '~':
                       add_token_check_misc(TOK_BIT_NOT, &curr_literal);
                       break;
 
-                      /* MISSING missing comments, @, ;, bitwise ops assign, exp assign and //= */ 
+                      //new lines are typically used to end statements but semicolons can also be used 
+                      //so we just convert semicolons to new lines 
+            case ';':
+                      add_token_check_misc(TOK_NEW_LINE, &curr_literal);
+                      break;
+            case '@':
+                      printf("Decorators are not supported\n");
+                      break;
             default:
-                if(isalnum(c)){
-                    string_push(&curr_literal, c);
+                if(isalnum(tokenizer.currentChar)){
+                    string_push(&curr_literal, tokenizer.currentChar);
                 }
-                else if(isspace(c) || c == EOF){
-                    if(curr_literal.size != 0) {
-                        check_misc_string(&curr_literal);
-                        string_clear(&curr_literal);
-                    } 
-                    else if(c == EOF){
-                        add_token(TOK_EOF);
-                        goto END;
-                    }
-                } else{
-                    fprintf(stderr, "Invalid token %c on line %d\n", c, tokenizer.line);
+                else if(tokenizer.currentChar == EOF){
+                    add_token(TOK_EOF);
+                    goto END;
+                }
+                else{
+                    fprintf(stderr, "Invalid token %c on line %d\n", tokenizer.currentChar, tokenizer.line);
                     exit(2);
                 }
         }
 
     }
 END: 
-     
+    string_delete(&curr_literal); 
     file_close(&tokenizer.file);
     return tokenizer.tokens;
 }
