@@ -122,6 +122,8 @@ typedef struct {
    ArrayList tokens;
    int line;
    File file;
+   char currentChar;
+   char prevChar;
 } Tokenizer;
 
 
