@@ -1,6 +1,5 @@
 #pragma once
 
-#include <stdio.h>
 #include "stringtype.h"
 #include "arraylist.h"
 #include "file.h"
@@ -92,6 +91,7 @@ typedef enum {
     TOK_SQUOTE,
     TOK_DQUOTE,
 
+    TOK_EOF,
     TOK_TAB, 
     TOK_NEW_LINE, 
     TOK_COMMA,
@@ -108,6 +108,7 @@ typedef enum {
     TOK_STRING,
 
     TOK_UNKOWN,
+    TOK_MAX, //used as a dummy value  
 } TokenType;
 
 
@@ -124,11 +125,8 @@ typedef struct {
 } Tokenizer;
 
 
-
 void tokenizer_create(const char* fileName);
-
-void print_token(Token token);
 
 void token_delete(Token* t);
 
-void tokenize_file();
+ArrayList tokenize_file();
