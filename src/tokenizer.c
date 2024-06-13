@@ -1,5 +1,6 @@
 #include "tokenizer.h"
 #include "arraylist.h"
+#include "hashmap.h"
 #include "stringtype.h"
 #include "stack.h"
 #include "file.h"
@@ -23,21 +24,55 @@ void tokenizer_create(const char* file_name){
     tokenizer.file = f;
     tokenizer.currentChar = '\0';
     tokenizer.prevChar = '\0';
+    tokenizer.keywords = hash_map_create(42); //even though there are only 32 keywords 42 seems to be optimal capacity 
+    hash_map_add_kv(&tokenizer.keywords, "False", TokenType, TOK_FALSE);
+    hash_map_add_kv(&tokenizer.keywords, "True", TokenType, TOK_TRUE);
+    hash_map_add_kv(&tokenizer.keywords, "None", TokenType, TOK_NONE);
+    hash_map_add_kv(&tokenizer.keywords, "and", TokenType, TOK_AND);
+    hash_map_add_kv(&tokenizer.keywords, "as", TokenType, TOK_AS);
+    hash_map_add_kv(&tokenizer.keywords, "assert", TokenType, TOK_ASSERT);
+    hash_map_add_kv(&tokenizer.keywords, "break", TokenType, TOK_BREAK);
+    hash_map_add_kv(&tokenizer.keywords, "class", TokenType, TOK_CLASS);
+    hash_map_add_kv(&tokenizer.keywords, "continue", TokenType, TOK_CONTINUE);
+    hash_map_add_kv(&tokenizer.keywords, "def", TokenType, TOK_DEF);
+    hash_map_add_kv(&tokenizer.keywords, "del", TokenType, TOK_DEL);
+    hash_map_add_kv(&tokenizer.keywords, "elif", TokenType, TOK_ELIF);
+    hash_map_add_kv(&tokenizer.keywords, "else", TokenType, TOK_ELSE);
+    hash_map_add_kv(&tokenizer.keywords, "except", TokenType, TOK_EXCEPT);
+    hash_map_add_kv(&tokenizer.keywords, "finally", TokenType, TOK_FINALLY);
+    hash_map_add_kv(&tokenizer.keywords, "for", TokenType, TOK_FOR);
+    hash_map_add_kv(&tokenizer.keywords, "from", TokenType, TOK_FROM);
+    hash_map_add_kv(&tokenizer.keywords, "global", TokenType, TOK_GLOBAL);
+    hash_map_add_kv(&tokenizer.keywords, "import", TokenType, TOK_IMPORT);
+    hash_map_add_kv(&tokenizer.keywords, "if", TokenType, TOK_IF);
+    hash_map_add_kv(&tokenizer.keywords, "is", TokenType, TOK_IS);
+    hash_map_add_kv(&tokenizer.keywords, "lambda", TokenType, TOK_LAMBDA);
+    hash_map_add_kv(&tokenizer.keywords, "in", TokenType, TOK_IN);
+    hash_map_add_kv(&tokenizer.keywords, "nonlocal", TokenType, TOK_NONLOCAL);
+    hash_map_add_kv(&tokenizer.keywords, "not", TokenType, TOK_NOT);
+    hash_map_add_kv(&tokenizer.keywords, "pass", TokenType, TOK_PASS);
+    hash_map_add_kv(&tokenizer.keywords, "raise", TokenType, TOK_RAISE);
+    hash_map_add_kv(&tokenizer.keywords, "return", TokenType, TOK_RETURN);
+    hash_map_add_kv(&tokenizer.keywords, "or", TokenType, TOK_OR);
+    hash_map_add_kv(&tokenizer.keywords, "yield", TokenType, TOK_YIELD);
+    hash_map_add_kv(&tokenizer.keywords, "with", TokenType, TOK_WITH);
+    hash_map_add_kv(&tokenizer.keywords, "while", TokenType, TOK_WHILE);
+    hash_map_add_kv(&tokenizer.keywords, "try", TokenType, TOK_TRY);
+    
 }
 
 
+static ArrayList delete_tokenizer(){
+    hash_map_delete(&tokenizer.keywords);
+    file_close(&tokenizer.file);
+    return tokenizer.tokens;
+}
 
 static char next_char(){
     tokenizer.prevChar = tokenizer.currentChar;
     tokenizer.currentChar = file_next_char(&tokenizer.file);
     return tokenizer.currentChar;
 }
-
-
-static char get_char(){
-    return tokenizer.currentChar;
-}
-
 
 static char peek_char(){
     return file_peek(&tokenizer.file);
@@ -82,11 +117,15 @@ static void add_token_with_string(TokenType type, String* string){
 
 /** 
  * Determing if the string is a keyword, float, int, or identifier 
- * TODO: USE HASHMAP FOR BETTER PERFORMANCE
  */
 static void check_misc_string(String* string){
+    //check for keyword
+    TokenType* keyword = hash_map_get_value(&tokenizer.keywords, string->str);
+    if(keyword != NULL){
+        add_token(*keyword);
+    }
     //checking if we have an integer or a float 
-    if(isdigit(string->str[0])){
+    else if(isdigit(string->str[0])){
         //if it contains a period it is likely a float 
         if(strchr(string->str, '.') != NULL){
             double d = strtod(string->str, NULL);
@@ -107,110 +146,10 @@ static void check_misc_string(String* string){
                 exit(2);
             }
         } 
-    }
-
-    else if(strcmp(string->str, "False") == 0) {
-        add_token(TOK_FALSE);
-    }
-    else if(strcmp(string->str, "None") == 0) {
-        add_token(TOK_NONE);
-    }
-    else if(strcmp(string->str, "True") == 0) {
-        add_token(TOK_TRUE);
-    }
-    else if(strcmp(string->str, "and") == 0) {
-        add_token(TOK_AND);
-    }
-    else if(strcmp(string->str, "as") == 0) {
-        add_token(TOK_AS);
-    }
-    else if(strcmp(string->str, "assert") == 0) {
-        add_token(TOK_ASSERT);
-    } 
-    else if(strcmp(string->str, "break") == 0) {
-        add_token(TOK_BREAK);
-    }
-    else if(strcmp(string->str, "class") == 0) {
-        add_token(TOK_CLASS);
-    }
-    else if(strcmp(string->str, "continue") == 0) {
-        add_token(TOK_CONTINUE); 
-    }
-    else if(strcmp(string->str, "def") == 0) {
-        add_token(TOK_DEF);
-    }
-    else if(strcmp(string->str, "del") == 0) {
-        add_token(TOK_DEL);
-    }
-    else if(strcmp(string->str, "elif") == 0) {
-        add_token(TOK_ELIF);
-    }
-    else if(strcmp(string->str, "else") == 0) {
-        add_token(TOK_ELSE);
-    }
-    else if(strcmp(string->str, "except") == 0) {
-        add_token(TOK_EXCEPT);
-    }
-    else if(strcmp(string->str, "finally") == 0) {
-        add_token(TOK_FINALLY);
-    }
-    else if(strcmp(string->str, "for") == 0) {
-        add_token(TOK_FOR);
-    }
-    else if(strcmp(string->str, "from") == 0) {
-        add_token(TOK_FROM);
-    }
-    else if(strcmp(string->str, "global") == 0) {
-        add_token(TOK_GLOBAL);
-    }
-    else if(strcmp(string->str, "if") == 0) {
-        add_token(TOK_IF);
-    }
-    else if(strcmp(string->str, "import") == 0) {
-        add_token(TOK_IMPORT);
-    }
-    else if(strcmp(string->str, "in") == 0) {
-        add_token(TOK_IN);
-    }
-    else if(strcmp(string->str, "is") == 0) {
-        add_token(TOK_IS);
-    }
-    else if(strcmp(string->str, "lambda") == 0) {
-        add_token(TOK_LAMBDA);
-    }
-    else if(strcmp(string->str, "nonlocal") == 0) {
-        add_token(TOK_NONLOCAL);
-    }
-    else if(strcmp(string->str, "not") == 0) {
-        add_token(TOK_NOT);
-    }
-    else if(strcmp(string->str, "or") == 0) {
-        add_token(TOK_OR);
-    }
-    else if(strcmp(string->str, "pass") == 0) {
-        add_token(TOK_PASS);
-    }
-    else if(strcmp(string->str, "raise") == 0) {
-        add_token(TOK_RAISE);
-    }
-    else if(strcmp(string->str, "return") == 0) {
-        add_token(TOK_RETURN);
-    }
-    else if(strcmp(string->str, "try") == 0) {
-        add_token(TOK_TRY);
-    }
-    else if(strcmp(string->str, "while") == 0) {
-        add_token(TOK_WHILE);
-    }
-    else if(strcmp(string->str, "with") == 0) {
-        add_token(TOK_WITH);
-    }
-    else if(strcmp(string->str, "yield") == 0) {
-        add_token(TOK_YIELD);
-    } else{
+    }    
+    else{
         add_token_with_string(TOK_IDENTIFIER, string);
-    }
-      
+    } 
     string_clear(string);
 }
 
@@ -329,8 +268,8 @@ ArrayList tokenize_file(){
                 check_assign(TOK_EQUAL, TOK_ASSIGN, &curr_literal); 
                 break;  
             case '\n':
-                if(get_prev_token() == TOK_NEW_LINE) break;
                 tokenizer.line++;
+                if(prev_char() == '\n') break; //ignore multiple new lines
                 add_token_check_misc(TOK_NEW_LINE, &curr_literal);
                 break;
             case '\t':
@@ -482,7 +421,7 @@ ArrayList tokenize_file(){
                       printf("Decorators are not supported\n");
                       break;
             default:
-                if(isalnum(tokenizer.currentChar)){
+                if(isalnum(tokenizer.currentChar) || tokenizer.currentChar == '_'){
                     string_push(&curr_literal, tokenizer.currentChar);
                 }
                 else if(tokenizer.currentChar == EOF){
@@ -497,9 +436,9 @@ ArrayList tokenize_file(){
 
     }
 END: 
-    string_delete(&curr_literal); 
-    file_close(&tokenizer.file);
-    return tokenizer.tokens;
+    string_delete(&curr_literal);
+    ArrayList tokens = delete_tokenizer();
+    return tokens;
 }
 
 
