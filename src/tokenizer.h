@@ -3,6 +3,7 @@
 #include "stringtype.h"
 #include "arraylist.h"
 #include "file.h"
+#include "hashmap.h"
 
 typedef enum {
     //keywords
@@ -120,6 +121,7 @@ typedef struct {
 
 typedef struct {
    ArrayList tokens;
+   HashMap keywords;
    int line;
    File file;
    char currentChar;
