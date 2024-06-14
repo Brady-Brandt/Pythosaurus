@@ -35,7 +35,8 @@ typedef enum {
     EXPR_UNARY,
     EXPR_FUNC, 
     EXPR_GROUPING,
-    EXPR_LOGICAL, 
+    EXPR_LOGICAL,
+    EXPR_BOOL, 
 } ExprType;
 
 
@@ -85,6 +86,11 @@ typedef struct {
     TokenType op;
     Expr* right;
 }LogicalExpr;
+
+
+typedef struct {
+    bool cond;
+} BoolExpr;
 
 
 Expr* expression(Parser *p);
