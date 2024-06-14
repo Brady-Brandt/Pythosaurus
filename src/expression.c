@@ -90,6 +90,19 @@ static Expr* create_logical_expr(Expr* left, TokenType operator,Expr* right){
 }
 
 
+
+static Expr* create_bool_expr(TokenType cond){
+   Expr* result = malloc(sizeof(Expr));
+   if(result == NULL) return NULL;
+   result->type = EXPR_BOOL; 
+   result->expr = malloc(sizeof(BoolExpr));
+   if(result->expr != NULL){
+       ((BoolExpr*)result->expr)->cond = (cond != TOK_FALSE);
+   }
+    return result;
+}
+
+
 static Expr* primary(Parser *p){
     if (match(p,TOK_IDENTIFIER)) {
         return create_literal_expr(parser_prev_token(p).literal, LIT_IDENTIFIER);
@@ -101,6 +114,10 @@ static Expr* primary(Parser *p){
 
     if(match(p, TOK_FLOAT)){
         return create_literal_expr(parser_prev_token(p).literal, LIT_FLOAT);
+    }
+
+    if(match(p, TOK_TRUE, TOK_FALSE)){
+        return create_bool_expr(parser_prev_token(p).type);
     }
 
     if(match(p, TOK_LEFT_PAREN)){
@@ -244,10 +261,10 @@ static Expr* bit_or(Parser *p){
 }
 
 static Expr* comparison(Parser *p){ 
-    Expr* expr = bit_xor(p); 
+    Expr* expr = bit_or(p); 
     while (match(p,TOK_GREATER_THAN,TOK_GREATER_EQUAL,TOK_LESS_EQUAL,TOK_LESS_THAN,TOK_EQUAL,TOK_LESS_THAN, TOK_IN, TOK_IS)) {
       TokenType operator = parser_prev_token(p).type; 
-      Expr* right = bit_xor(p);
+      Expr* right = bit_or(p);
       expr = create_binary_expr(expr, operator, right);
     }
     return expr; 
