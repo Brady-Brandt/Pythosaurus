@@ -3,7 +3,6 @@
 #include "stringtype.h"
 #include "arraylist.h"
 #include "file.h"
-#include "hashmap.h"
 
 typedef enum {
     //keywords
@@ -116,21 +115,10 @@ typedef enum {
 typedef struct {
     TokenType type;
     String literal;
+    unsigned int line;
 } Token;
 
 
-typedef struct {
-   ArrayList tokens;
-   HashMap keywords;
-   int line;
-   File file;
-   char currentChar;
-   char prevChar;
-} Tokenizer;
-
-
-void tokenizer_create(const char* fileName);
+ArrayList tokenize_file(File* file);
 
 void token_delete(Token* t);
-
-ArrayList tokenize_file();
