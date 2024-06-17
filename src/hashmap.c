@@ -5,8 +5,25 @@
 #include <stdio.h>
 #include <stdbool.h>
 
+
+
+//subject to change but I don't think I need anything larger
+//this should be more than enough 
+#define MAX_HASHMAP_SIZE 10000
+
+
 //mad compression requires a prime number greater than capacity
 #define LARGEST_PRIME 10007
+
+
+typedef struct {
+    char* key;
+    void* value;
+    struct HashEntry* next;
+} HashEntry;
+
+
+
 static unsigned int find_prime(unsigned int cap){
     //make sure cap is odd so we can skip over all evens
     if(cap % 2 == 0) cap++;
@@ -24,7 +41,7 @@ static unsigned int find_prime(unsigned int cap){
 }
 
 
-HashMap hash_map_create(unsigned int capacity){
+HashMap hash_map_create(unsigned int capacity, delete_func delete){
     if(capacity == 0 || capacity > MAX_HASHMAP_SIZE){
         fprintf(stderr, "Failed to create hashmap invalid size");
         return (HashMap){0,0,0,0,0,0};
@@ -32,6 +49,7 @@ HashMap hash_map_create(unsigned int capacity){
     HashMap result;
     result.capacity = capacity;
     result.size = 0;
+    result.delete = delete;
     result.data = NULL;
     srand(4);
     result.data = calloc(capacity, sizeof(HashEntry*));
@@ -45,13 +63,17 @@ HashMap hash_map_create(unsigned int capacity){
 
 void hash_map_delete(HashMap* map){
     for(int i = 0; i < map->capacity; i++){
-        HashEntry* curr = map->data[i];
+        HashEntry* curr = (HashEntry*)map->data[i];
         while(curr != NULL){
             HashEntry* temp = (HashEntry*)curr->next;
             //free the key
             free(curr->key);
-            //free the value
-            free(curr->value);
+            if(map->delete == NULL){
+                //free the value
+                free(curr->value);
+            } else {
+                map->delete(curr->value);
+            }
             //free the entry 
             free(curr);
             map->size--;
@@ -87,15 +109,32 @@ static unsigned int compression(HashMap* map, unsigned long hash){
 static void add_entry(HashMap *map, unsigned int index, HashEntry* entry){
     //just put it at the index if it is empty
     if(map->data[index] == NULL){
-       map->data[index] = entry;
+       map->data[index] = (struct HashEntry*)entry;
        map->size++;
     } else {
         //perform seperate chaining
-        HashEntry* curr = map->data[index];
+        HashEntry* curr = (HashEntry*)map->data[index];
         while(curr != NULL){
            if(curr->next == NULL){
                 curr->next = (struct HashEntry*)entry;
                 break;
+           }
+           //if this key already exists in the list we change the value at the key 
+           if(strcmp(entry->key, curr->key) == 0){
+               //even though keys are identical, we already allocated both 
+               //so we have to free the old one 
+               //TODO: Make it so we don't have to realloc 
+                free(curr->key);
+                //delete the value
+                if(map->delete != NULL){
+                   map->delete(curr->value); 
+                } else{
+                    free(curr->value);
+                }
+                entry->next = curr->next;
+                //free the entry pointer
+                free(curr);
+                return;
            }
            curr = (HashEntry*)curr->next; 
         }
@@ -113,7 +152,7 @@ static void hash_map_resize(HashMap* map, unsigned int new_cap){
     map->a = rand() % (map->p - 1) + 1;
     map->b = rand() % (map->p - 1);
 
-    HashEntry **old_data = map->data;
+    HashEntry **old_data = (HashEntry**)map->data;
 
     //allocating new block 
     map->data = calloc(map->capacity, sizeof(HashEntry*));
@@ -163,7 +202,7 @@ void hash_map_add_entry(HashMap* map, const char* key, void* value){
 
 void* hash_map_delete_entry(HashMap *map, char* key){
     unsigned int index = compression(map, hash(key));
-    HashEntry* curr = map->data[index];
+    HashEntry* curr = (HashEntry*)map->data[index];
     HashEntry* prev = curr;
     while(curr != NULL) {
         //ensure the keys match 
@@ -174,7 +213,7 @@ void* hash_map_delete_entry(HashMap *map, char* key){
             }
             else{
                 //removing the index from the front of the linked list
-                map->data[index] = (HashEntry*)curr->next;
+                map->data[index] = curr->next;
             }
             free(curr->key);
             void* value = curr->value;
@@ -192,12 +231,18 @@ void* hash_map_delete_entry(HashMap *map, char* key){
 
 void hash_map_delete_entry_with_value(HashMap *map, char *key){
     void* data = hash_map_delete_entry(map, key);
-    if(data != NULL) free(data);
+    if(data != NULL) {
+        if(map->delete != NULL){
+            delete_func(data);
+        } else{ 
+            free(data);
+        }
+    }
 }
 
 void* hash_map_get_value(HashMap *map, char* key){
     unsigned int index = compression(map, hash(key));
-    HashEntry* curr = map->data[index];
+    HashEntry* curr = (HashEntry*)map->data[index];
     while(curr != NULL) {
         if(strcmp(key, curr->key) == 0){
             return curr->value;

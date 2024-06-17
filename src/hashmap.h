@@ -1,19 +1,14 @@
 #pragma once
 
-//subject to change but I don't think I need anything larger
-//this should be more than enough 
-#define MAX_HASHMAP_SIZE 10000
+//holds a function to determine how to delete each 
+//valu in a hashmap 
+typedef void (*delete_func)(void *);
 
-
-typedef struct {
-    char* key;
-    void* value;
-    struct HashEntry* next;
-} HashEntry;
 
 //hashmap uses seperate chaining for collisions 
 typedef struct {
-    HashEntry **data;
+    struct HashEntry **data;
+    delete_func delete;
     unsigned int size;
     unsigned int capacity;
     //used for MAD compression
@@ -23,8 +18,9 @@ typedef struct {
 }HashMap;
 
 
-
-HashMap hash_map_create(unsigned int capacity);
+//delete_func determines what to do when items are deleted from the hashmap 
+//if null is inputted, it will just call free on the input data
+HashMap hash_map_create(unsigned int capacity, delete_func delete);
 
 
 void hash_map_delete(HashMap* map);
@@ -35,7 +31,6 @@ void hash_map_delete(HashMap* map);
 //the value pointer will be "owned" by the hashmap
 void hash_map_add_entry(HashMap* map, const char* key, void* value);
 
-//calls hash_map_add_entry, but mallocs a pointer to value first 
 #define hash_map_add_kv(map_ptr, key, type, value) \
     do { \
         type* temp = malloc(sizeof(type)); \
