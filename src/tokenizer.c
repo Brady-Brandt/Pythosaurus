@@ -32,7 +32,7 @@ static void tokenizer_create(Tokenizer *tokenizer, File* file){
     tokenizer->currentChar = '\0';
     tokenizer->prevChar = '\0';
     tokenizer->currentString = string_create();
-    tokenizer->keywords = hash_map_create(42); //even though there are only 32 keywords 42 seems to be optimal capacity 
+    tokenizer->keywords = hash_map_create(42, NULL); //even though there are only 32 keywords 42 seems to be optimal capacity 
     hash_map_add_kv(&tokenizer->keywords, "False", TokenType, TOK_FALSE);
     hash_map_add_kv(&tokenizer->keywords, "True", TokenType, TOK_TRUE);
     hash_map_add_kv(&tokenizer->keywords, "None", TokenType, TOK_NONE);
