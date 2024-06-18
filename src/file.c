@@ -16,13 +16,18 @@ File file_open(const char* file_name){
     result.isOpen = true;
     result.stream = stream;
     result.name = file_name;
+    result.currentLine = 1;
     return result;
 
 }
 
 char file_next_char(File* f){
     if(f->isOpen){
-        return fgetc(f->stream);
+        char c = fgetc(f->stream);
+        if(c == '\n'){
+            f->currentLine++;
+        }
+        return c;
     }
     return EOF;
 }
@@ -41,8 +46,9 @@ char file_peek(File* f){
 
 //skips to end of a line in a file
 void file_end_line(File* f){
-    while(file_next_char(f) != '\n'){
-        
+    char c = file_next_char(f); 
+    while(c != '\n' && c != EOF){
+       c = file_next_char(f);
     }
 }
 
@@ -51,4 +57,34 @@ void file_close(File* f){
         fclose(f->stream);
         f->isOpen = false;
     }
+}
+
+
+void file_eprint_line(File* f, unsigned int line){
+    if(line < f->currentLine){
+        rewind(f->stream);
+        f->currentLine = 1;
+    }
+
+    while(f->currentLine != line){
+        file_end_line(f);
+        char c = file_next_char(f);
+        if(c == EOF) return;
+    }
+
+    char buffer[128];
+    int buff_size = 0;
+    //now we should be on the line we want to print 
+    fprintf(stderr, "%s -> Line %d: ", f->name, line);
+    while(f->currentLine == line){
+       char c = file_next_char(f); 
+       buffer[buff_size++] = c;
+       if(buff_size == 126){
+            buffer[127] = '\0';
+            fprintf(stderr, "%s", buffer);
+            buff_size = 0;
+       }
+    }
+    buffer[buff_size] = '\0';
+    fprintf(stderr, "%s\n", buffer);
 }
