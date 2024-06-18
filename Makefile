@@ -1,5 +1,5 @@
 CC = clang
-CFLAGS = -g -Wall
+CFLAGS = -g -Wall -DDEBUG=1
 LDFLAGS = -lm
 
 SRC_DIR = src
