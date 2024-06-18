@@ -233,7 +233,7 @@ void hash_map_delete_entry_with_value(HashMap *map, char *key){
     void* data = hash_map_delete_entry(map, key);
     if(data != NULL) {
         if(map->delete != NULL){
-            delete_func(data);
+            map->delete(data);
         } else{ 
             free(data);
         }
