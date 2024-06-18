@@ -1,4 +1,5 @@
 #include "stringtype.h"
+#include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
 
@@ -20,8 +21,20 @@ String string_create(){
     return result;
 }
 
+
+
+String string_create_with_cap(uint32_t size){
+    String result;
+    result.size = 0;
+    result.capacity = size;
+    result.str = malloc(size * sizeof(char));
+    result.str[0] = 0; 
+    return result;
+}
+
+
 String string_from_str(const char* str){
-    int str_len = strlen(str);
+    uint32_t str_len = strlen(str);
     String result;
     result.size = str_len;
     //account for null terminator
@@ -54,5 +67,37 @@ void string_delete(String* s){
     free(s->str);
 }
 
+
+
+
+String string_concat(String* s1, String* s2){
+    size_t total_size = s1->size + s2->size;
+    String result = string_create_with_cap(total_size + 1); 
+    for(int i = 0; i < s1->size; i++){
+        result.str[i] = s1->str[i];
+        result.size++;
+    }
+
+    int index = 0;
+    for(int i = s1->size; i < total_size; i++){
+        result.str[i] = s2->str[index++];
+        result.size++;
+    }
+    result.str[total_size + 1] = '\0';
+    return result;
+}
+
+String string_multiply(String* s1, uint32_t times){
+    uint32_t size = s1->size * times; 
+    String result = string_create_with_cap(size + 1); 
+    result.size = size;
+    uint32_t index = 0;
+    for(int i = 0; i < times; i++){
+        memcpy(&result.str[index], s1->str, s1->size);
+        index += s1->size;
+    }
+    result.str[size + 1] = '\0';
+    return result;
+}
 
 
