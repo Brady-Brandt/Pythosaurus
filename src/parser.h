@@ -1,6 +1,10 @@
 #pragma once
 #include "tokenizer.h"
 #include "arraylist.h"
+#include <stdbool.h>
+#include <setjmp.h>
+#include <stdnoreturn.h>
+#include "file.h"
 
 /*
  *  mod = Module(stmt* body)
@@ -59,34 +63,69 @@
  *
 */
 
+#define PARSER_ERROR 10 
+
+typedef struct {
+    bool isActive; //checks if savedState is set
+    jmp_buf savedState;
+    File* file;
+} ErrorHandler;
+
+
 typedef struct {
     ArrayList tokens; 
     Token currentToken; 
     unsigned int tokenIndex; //index of the current token
+    unsigned int indentationLevel;
+    ErrorHandler err;
 } Parser;
 
 
-Parser parser_create(ArrayList tokens);
+void parser_create(Parser *p, File* f, ArrayList tokens);
 
 Token parser_next_token(Parser *p);
 
 Token parser_prev_token(Parser* p);
 
-//consumes the current token and returns the next one 
-Token parser_consume_token(Parser *p, TokenType expected);
-
 Token parser_peek_token(Parser *p);
+
+
+//consumes the current token and returns the next one 
+//ensures current token is equal to expected
+Token parser_consume_token(Parser *p, TokenType expected, const char* fmt, ...);
+
+
+//ensures the current token is equal to expected 
+//unlike parser_consume_token this function does not 
+//change the value of current token 
+void parser_expect_token(Parser *p, TokenType expected);
+
+//just calls parser_next_token()
+//makes it more clear which token we are consuming 
+Token parser_consume_verified_token(Parser *p, TokenType token);
+
+
+Token parser_expect_consume_token(Parser *p, TokenType expected);
+
+//if the current token == tok, we consume the current token 
+//else do nothing 
+void parser_try_consume_token(Parser *p, TokenType tok);
+
+noreturn void parser_new_error(Parser *p, const char* fmt, ...);
+
 
 ArrayList parse_tokens(Parser *p);
 
 
 //this should not be invoked directly 
+//use the macro instead
 bool __match(Parser *p, ...);
 
 #define match(p,...) __match(p, __VA_ARGS__, TOK_MAX)
 
-
-
+//checks to see if the next "level_count" tokens are TABS  
+//if yes it consumes them and returns true else just returns false
+bool parser_match_indentation_level(Parser *p, unsigned int level_count);
 
 
 
