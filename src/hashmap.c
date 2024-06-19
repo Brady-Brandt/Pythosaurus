@@ -114,29 +114,37 @@ static void add_entry(HashMap *map, unsigned int index, HashEntry* entry){
     } else {
         //perform seperate chaining
         HashEntry* curr = (HashEntry*)map->data[index];
-        while(curr != NULL){
-           if(curr->next == NULL){
-                curr->next = (struct HashEntry*)entry;
-                break;
-           }
-           //if this key already exists in the list we change the value at the key 
-           if(strcmp(entry->key, curr->key) == 0){
-               //even though keys are identical, we already allocated both 
-               //so we have to free the old one 
-               //TODO: Make it so we don't have to realloc 
+        HashEntry* prev = NULL;
+        while(curr != NULL){ 
+            //if this key already exists in the list we change the value at the key 
+            if(strcmp(entry->key, curr->key) == 0){
+                //even though keys are identical, we already allocated both 
+                //so we have to free the old one 
+                //TODO: Make it so we don't have to realloc 
                 free(curr->key);
                 //delete the value
                 if(map->delete != NULL){
-                   map->delete(curr->value); 
+                    map->delete(curr->value); 
                 } else{
                     free(curr->value);
                 }
                 entry->next = curr->next;
+                //replacing the value at the start of the list
+                if(prev == NULL){
+                    map->data[index] = (struct HashEntry*)entry;
+                } else{
+                    prev->next = (struct HashEntry*)entry;
+                }
                 //free the entry pointer
                 free(curr);
                 return;
-           }
-           curr = (HashEntry*)curr->next; 
+            }
+            if(curr->next == NULL){
+                curr->next = (struct HashEntry*)entry;
+                break;
+            }
+            prev = curr;
+            curr = (HashEntry*)curr->next; 
         }
         map->size++;
     }
