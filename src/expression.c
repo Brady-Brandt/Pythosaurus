@@ -1,24 +1,10 @@
+#include <stdlib.h>
+
 #include "expression.h"
 #include "arraylist.h"
 #include "parser.h"
+#include "stringtype.h"
 #include "tokenizer.h"
-#include <stdlib.h>
-
-
-
-static Expr* create_literal_expr(String literal, LiteralType type){
-    Expr* result = (Expr*)malloc(sizeof(Expr));
-    if(result == NULL) return NULL;
-    result->type = EXPR_LITERAL; 
-    result->expr = (LiteralExpr*)malloc(sizeof(LiteralExpr));
-    if(result->expr != NULL){
-        LiteralExpr* temp = (LiteralExpr*)result->expr;
-        temp->lit = literal;
-        temp->litType = type;
-    }
-    return result;
-}
-
 
 
 static Expr* create_binary_expr(Expr* left, TokenType operator,Expr* right){
@@ -90,44 +76,62 @@ static Expr* create_logical_expr(Expr* left, TokenType operator,Expr* right){
 }
 
 
-
-static Expr* create_bool_expr(TokenType cond){
-   Expr* result = malloc(sizeof(Expr));
-   if(result == NULL) return NULL;
-   result->type = EXPR_BOOL; 
-   result->expr = malloc(sizeof(BoolExpr));
-   if(result->expr != NULL){
-       ((BoolExpr*)result->expr)->cond = (cond != TOK_FALSE);
-   }
-    return result;
-}
-
-
 static Expr* primary(Parser *p){
-    if (match(p,TOK_IDENTIFIER)) {
-        return create_literal_expr(parser_prev_token(p).literal, LIT_IDENTIFIER);
-    }
-
-    if(match(p, TOK_INTEGER)){
-        return create_literal_expr(parser_prev_token(p).literal, LIT_INTEGER);
-    }
-
-    if(match(p, TOK_FLOAT)){
-        return create_literal_expr(parser_prev_token(p).literal, LIT_FLOAT);
-    }
-
-    if(match(p, TOK_TRUE, TOK_FALSE)){
-        return create_bool_expr(parser_prev_token(p).type);
-    }
-
+    //check for a group expression first 
     if(match(p, TOK_LEFT_PAREN)){
        Expr* e = expression(p); 
-       parser_consume_token(p, TOK_RIGHT_PAREN);
+       parser_consume_token(p, TOK_RIGHT_PAREN, "Expected closing ')'\n");
        return create_grouping_expr(e);
     }
 
+    //it should be a literal expression here
+    Expr* result = malloc(sizeof(Expr));
+    if(result == NULL) return NULL;
+    result->type = EXPR_LITERAL;  \
+    result->expr = (LiteralExpr*)malloc(sizeof(LiteralExpr)); \
+    if(result->expr == NULL){
+        free(result);
+        return NULL;
+    }
+    LiteralExpr* temp = (LiteralExpr*)result->expr;
+    switch (p->currentToken.type) {
+        case TOK_IDENTIFIER: 
+            temp->litType = LIT_IDENTIFIER;
+            temp->identifier = p->currentToken.literal;
+            break;
+        case TOK_STRING:
+            temp->litType = LIT_STRING;
+            temp->string = p->currentToken.literal;
+            break;
 
-    return NULL;
+        case TOK_INTEGER:
+            temp->litType = LIT_INTEGER;
+            temp->integer = strtol(p->currentToken.literal.str, NULL, 10);
+            string_delete(&p->currentToken.literal);
+            break;
+        
+        case TOK_FLOAT:
+            temp->litType = LIT_FLOAT;
+            temp->_float = strtod(p->currentToken.literal.str, NULL);
+            string_delete(&p->currentToken.literal);
+            break;
+
+        case TOK_TRUE:
+        case TOK_FALSE:
+            temp->litType = LIT_BOOL;
+            temp->boolean = p->currentToken.type == TOK_TRUE;
+            break;
+        case TOK_NONE:
+            temp->litType = LIT_NONE;
+            temp->none = NULL;
+            break; 
+        default:
+            free(temp);
+            free(result);
+            parser_new_error(p, "Invalid expression\n"); 
+    }
+    parser_next_token(p);
+    return result;
 }
 
 
@@ -141,14 +145,14 @@ static ArrayList func_arg(Parser *p){
     }
 
     ArrayList args;
-    array_list_create_cap(args, Expr*, 10);
+    array_list_create_cap(args, Expr*, 4);
 
     do {
        Expr* arg = expression(p);
        array_list_append(args, Expr*, arg);
     }while(match(p, TOK_COMMA));
 
-    parser_consume_token(p, TOK_RIGHT_PAREN);
+    parser_consume_token(p, TOK_RIGHT_PAREN, "Missing closing ')'");
 
     return args;
 }
@@ -160,17 +164,15 @@ static Expr* call(Parser *p){
    while(match(p, TOK_LEFT_PAREN)){
         ArrayList args = func_arg(p);
         if(expr->type != EXPR_LITERAL){
-            fprintf(stderr, "Invalid function call\n");
-            exit(1);
+            parser_new_error(p, "Invalid function name\n");
         }
 
         LiteralExpr* lexpr = (LiteralExpr*)expr->expr;
         if(lexpr->litType != LIT_IDENTIFIER){ 
-            fprintf(stderr, "Need to use valid id to call func\n");
-            exit(1);
+            parser_new_error(p, "Invalid function name\n");
         }
 
-        return create_func_expr(lexpr->lit, args);
+        return create_func_expr(lexpr->string, args);
    }
     return expr;
 }
@@ -187,7 +189,7 @@ static Expr* exp(Parser *p){
 
 
 static Expr* unary(Parser *p){
-    while(match(p, TOK_ADD, TOK_SUB, TOK_BIT_XOR, TOK_BIT_NOT)){
+    while(match(p, TOK_ADD, TOK_SUB, TOK_BIT_NOT)){
         TokenType op = parser_prev_token(p).type;
         Expr* right = unary(p);
         return create_unary_expr(op, right);
@@ -307,4 +309,5 @@ static Expr* or(Parser *p){
 Expr* expression(Parser* p){
     return or(p); 
 }
+
 

@@ -1,4 +1,5 @@
 #pragma once 
+
 #include "tokenizer.h"
 #include "parser.h"
 
@@ -36,15 +37,16 @@ typedef enum {
     EXPR_FUNC, 
     EXPR_GROUPING,
     EXPR_LOGICAL,
-    EXPR_BOOL, 
 } ExprType;
 
 
 typedef enum {
+    LIT_BOOL,
     LIT_INTEGER, 
     LIT_FLOAT, 
     LIT_STRING,
     LIT_IDENTIFIER,
+    LIT_NONE,
 } LiteralType;
 
 typedef struct {
@@ -66,8 +68,15 @@ typedef struct {
 
 
 typedef struct {
-    String lit;
     LiteralType litType;
+    union {
+        String string;
+        long integer;
+        double _float;
+        String identifier;
+        bool boolean;
+        void* none;
+    };
 } LiteralExpr;
 
 //represents a function call
@@ -88,12 +97,7 @@ typedef struct {
 }LogicalExpr;
 
 
-typedef struct {
-    bool cond;
-} BoolExpr;
-
-
+//creates an expression using recursive descent 
 Expr* expression(Parser *p);
-
 
 
