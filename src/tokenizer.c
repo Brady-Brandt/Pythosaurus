@@ -2,7 +2,6 @@
 #include "arraylist.h"
 #include "hashmap.h"
 #include "stringtype.h"
-#include "stack.h"
 #include "file.h"
 
 
@@ -171,32 +170,6 @@ static void add_token_check_string(Tokenizer *tokenizer, TokenType type){
 }
 
 
-void validate_enclosures(Tokenizer *tokenizer, Stack* s){
-    char closing = tokenizer->currentChar;
-    if(stack_is_empty(s)){
-        fprintf(stderr, "Unclosed %c on line %d\n", closing, tokenizer->line);
-        exit(2);
-    }
-
-    char opening = stack_pop(s);
-    if(opening == '(' && closing != ')'){
-        fprintf(stderr, "Unclosed ( on line %d\n", tokenizer->line);
-        exit(2);
-    }
-    else if(opening == '[' && closing != ']'){
-        fprintf(stderr, "Unclosed [ on line %d\n", tokenizer->line);
-        exit(2);
-    }
-    else if(opening == '{' && closing != '}'){
-        fprintf(stderr, "Unclosed { on line %d\n", tokenizer->line);
-        exit(2);
-    }
-    else if(opening == '\"' && closing != '\"'){
-        fprintf(stderr, "Unclosed \" on line %d\n", tokenizer->line);
-        exit(2);
-    }
-}
-
 
 static void create_string_token(Tokenizer *tokenizer){
     if(tokenizer->currentString.size != 0){
@@ -232,7 +205,7 @@ static void spaces_to_tab(Tokenizer *tokenizer){
     }
 
     if(space_counter != 0){
-        fprintf(stderr, "Invalid identation. Idents must be 4 spaces or a tab on line %d\n", tokenizer->line);
+        fprintf(stderr, "Invalid identation. Indents must be 4 spaces or a tab on line %d\n", tokenizer->line);
         exit(1);
     }
 }
@@ -255,11 +228,7 @@ ArrayList tokenize_file(File* file){
 
     Tokenizer tokenizer = {0};
     tokenizer_create(&tokenizer, file);
-
-    Stack enclosure_stack;
-    stack_create(&enclosure_stack);
-
-
+ 
     while(true) {
         next_char(&tokenizer);
 
@@ -290,11 +259,9 @@ ArrayList tokenize_file(File* file){
                 add_token_check_string(&tokenizer,TOK_TAB);
                 break;
             case '(':
-                stack_push(&enclosure_stack, tokenizer.currentChar);
                 add_token_check_string(&tokenizer,TOK_LEFT_PAREN);
                 break; 
             case ')':
-                validate_enclosures(&tokenizer, &enclosure_stack);
                 add_token_check_string(&tokenizer,TOK_RIGHT_PAREN);
                 break; 
             case ':':
@@ -387,19 +354,15 @@ ArrayList tokenize_file(File* file){
                       add_token_check_string(&tokenizer,TOK_SQUOTE);
                       break;
             case '[': 
-                      stack_push(&enclosure_stack, tokenizer.currentChar);
                       add_token_check_string(&tokenizer,TOK_LEFT_BRACKET);
                       break;
             case ']': 
-                      validate_enclosures(&tokenizer, &enclosure_stack);
                       add_token_check_string(&tokenizer,TOK_RIGHT_BRACKET);
                       break;
             case '{':   
-                      stack_push(&enclosure_stack, tokenizer.currentChar);
                       add_token_check_string(&tokenizer,TOK_LEFT_BRACE);
                       break;
             case '}':
-                      validate_enclosures(&tokenizer, &enclosure_stack);
                       add_token_check_string(&tokenizer,TOK_RIGHT_BRACE);
                       break;
             case '#':
@@ -439,8 +402,7 @@ ArrayList tokenize_file(File* file){
                     goto END;
                 }
                 else{
-                    fprintf(stderr, "Invalid token %c on line %d\n", tokenizer.currentChar, tokenizer.line);
-                    exit(2);
+                    add_token(&tokenizer, TOK_UNKOWN);
                 }
         }
 
