@@ -127,6 +127,19 @@ bool __match(Parser *p, ...);
 //if yes it consumes them and returns true else just returns false
 bool parser_match_indentation_level(Parser *p, unsigned int level_count);
 
+;
+
+struct ParserState {
+    Token saved;
+    unsigned int index;
+};
+
+
+
+//allows for parser back tracking 
+void parser_save_state(Parser *p, struct ParserState* pstate);
+
+void parser_restore_state(Parser *p, struct ParserState* pstate);
 
 
 

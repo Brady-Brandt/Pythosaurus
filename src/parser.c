@@ -152,7 +152,7 @@ Token parser_peek_token(Parser *p){
 
 bool parser_match_indentation_level(Parser *p, unsigned int level_count){
     //saving the state just incase indentationLevel doesn't match level count 
-    Token savedToken = p->currentToken; //this should be a tab 
+    Token savedToken = p->currentToken; //this should be a tab  
     unsigned int savedTokenIndex = p->tokenIndex;
     for(int i = 0; i < level_count; i++){
         if(p->currentToken.type != TOK_TAB){
@@ -187,6 +187,17 @@ bool __match(Parser *p, ...){
     return false;
 }
 
+void parser_save_state(Parser *p, struct ParserState* pstate){
+    pstate->saved = p->currentToken;
+    pstate->index = p->tokenIndex;
+}
+
+void parser_restore_state(Parser *p, struct ParserState* pstate){
+    if(pstate == NULL) return;
+    p->currentToken = pstate->saved;
+    p->tokenIndex = pstate->index;
+}
+
 
 
 ArrayList parse_tokens(Parser *p){
@@ -207,4 +218,6 @@ ArrayList parse_tokens(Parser *p){
     parser_delete(p);
     return statements;
 }
+
+
 
