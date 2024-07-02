@@ -62,11 +62,13 @@ typedef struct {
 } Statement;
 
 typedef struct {
+    StatementType type;
     String identifier;
     Expr* value;
 } AssignStmt; 
 
 typedef struct {
+    StatementType type;
     String identifier;
     TokenType op;
     Expr* value;
@@ -74,36 +76,55 @@ typedef struct {
 
 
 typedef struct {
+    StatementType type;
     Expr* expr;
 } ExprStmt;
 
 
 typedef struct {
-    BlockType type;
+    StatementType type;
+    BlockType BlockType;
     ArrayList statements;
 } BlockStmt;
 
+
+//special kind of statement that can only be nested 
+//inside of the if statement
 typedef struct {
     Expr* condition;
+    Statement* then;
+    struct ElifStmt* next;
+} ElifStmt;
+
+typedef struct {
+    StatementType type;
+    Expr* condition;
+    ElifStmt* elif;
     Statement* then;
     Statement* elseBranch;
 } IfStmt; 
 
 
 typedef struct {
+    StatementType type;
     Expr* condition;
     Statement* _while;
 } WhileStmt;
 
 typedef struct {
+    StatementType type;
     String identifier;
-    ArrayList parameters; //type token 
+    int parameters;
     Statement* body;
 } FunctionStmt;
 
 typedef struct {
+    StatementType type;
     Expr* value;
 } ReturnStmt;
 
 
 Statement* statement(Parser *p);
+
+void delete_statement(Statement* stmt);
+
