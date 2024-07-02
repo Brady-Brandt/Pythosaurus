@@ -36,7 +36,6 @@ typedef enum {
     EXPR_UNARY,
     EXPR_FUNC, 
     EXPR_GROUPING,
-    EXPR_LOGICAL,
 } ExprType;
 
 
@@ -47,20 +46,22 @@ typedef enum {
     LIT_STRING,
     LIT_IDENTIFIER,
     LIT_NONE,
+    LIT_UNINIT,
 } LiteralType;
 
 typedef struct {
     ExprType type;
-    void *expr; 
+    void* expr;
 } Expr;
 
-
 typedef struct {
+    ExprType type;
     TokenType op;
     Expr* right;
 } UnaryExpr;
 
 typedef struct {
+    ExprType type;
     Expr* left;
     TokenType op; 
     Expr* right;
@@ -68,6 +69,7 @@ typedef struct {
 
 
 typedef struct {
+    ExprType type;
     LiteralType litType;
     union {
         String string;
@@ -81,23 +83,25 @@ typedef struct {
 
 //represents a function call
 typedef struct {
+    ExprType type;
     String name;
     ArrayList args; //arraylist of expressions 
 } FuncExpr;
 
 
 typedef struct { 
+    ExprType type;
     Expr* expr;
 } GroupingExpr;
-
-typedef struct {
-    Expr* left;
-    TokenType op;
-    Expr* right;
-}LogicalExpr;
 
 
 //creates an expression using recursive descent 
 Expr* expression(Parser *p);
+
+void delete_literal_expr(LiteralExpr* expr);
+
+void delete_expr_tree(Expr* expr);
+
+
 
 

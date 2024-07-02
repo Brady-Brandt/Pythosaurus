@@ -8,72 +8,45 @@
 
 
 static Expr* create_binary_expr(Expr* left, TokenType operator,Expr* right){
-   Expr* result = malloc(sizeof(Expr));
-   if(result == NULL) return NULL;
-   result->type = EXPR_BINARY; 
-   result->expr = malloc(sizeof(BinaryExpr));
-   if(result->expr != NULL){
-       BinaryExpr* temp = (BinaryExpr*)result->expr;
-       temp->left = left;
-       temp->op = operator;
-       temp->right = right;
-   }      
-   return result;
+    BinaryExpr* result = malloc(sizeof(BinaryExpr));
+    if(result == NULL) return NULL;
+    result->type = EXPR_BINARY; 
+    result->left = left;
+    result->op = operator;
+    result->right = right;
+    return (Expr*)result;
 }
 
 
 
 static Expr* create_unary_expr(TokenType operator, Expr* right){
-   Expr* result = malloc(sizeof(Expr));
-   if(result == NULL) return NULL;
-   result->type = EXPR_UNARY; 
-   result->expr = malloc(sizeof(UnaryExpr));
-   if(result->expr != NULL){
-       UnaryExpr* temp = (UnaryExpr*)result->expr;
-       temp->op = operator;
-       temp->right = right;
-   }      
-   return result;
-
+    UnaryExpr* result = malloc(sizeof(UnaryExpr));
+    if(result == NULL) return NULL;
+    result->type = EXPR_UNARY;
+    result->op = operator;
+    result->right = right;
+    return (Expr*)result;
 }
 
 
 static Expr* create_func_expr(String name, ArrayList args){
-    Expr* result = malloc(sizeof(Expr));
+    FuncExpr* result = malloc(sizeof(FuncExpr));
     if(result == NULL) return NULL;
     result->type = EXPR_FUNC;
-    result->expr = malloc(sizeof(FuncExpr));
-    if(result->expr != NULL){
-        FuncExpr* temp = (FuncExpr*)result->expr;
-        temp->args = args;
-        temp->name = name;
-    }
-    return result;
+    result->args = args;
+    result->name = name; 
+    return (Expr*)result;
 }
 
 
 static Expr* create_grouping_expr(Expr* e){
-    Expr* result = malloc(sizeof(Expr));
+    GroupingExpr* result = malloc(sizeof(GroupingExpr));
     if(result == NULL) return NULL;
     result->type = EXPR_GROUPING;
     result->expr = e;
-    return result;
+    return (Expr*)result;
 }
 
-
-static Expr* create_logical_expr(Expr* left, TokenType operator,Expr* right){
-   Expr* result = malloc(sizeof(Expr));
-   if(result == NULL) return NULL;
-   result->type = EXPR_LOGICAL; 
-   result->expr = malloc(sizeof(LogicalExpr));
-   if(result->expr != NULL){
-       LogicalExpr* temp = (LogicalExpr*)result->expr;
-       temp->left = left;
-       temp->op = operator;
-       temp->right = right;
-   }      
-   return result;
-}
 
 
 static Expr* primary(Parser *p){
@@ -84,54 +57,47 @@ static Expr* primary(Parser *p){
        return create_grouping_expr(e);
     }
 
-    //it should be a literal expression here
-    Expr* result = malloc(sizeof(Expr));
-    if(result == NULL) return NULL;
-    result->type = EXPR_LITERAL;  \
-    result->expr = (LiteralExpr*)malloc(sizeof(LiteralExpr)); \
-    if(result->expr == NULL){
-        free(result);
-        return NULL;
-    }
-    LiteralExpr* temp = (LiteralExpr*)result->expr;
+    //it should be a literal expression here 
+    LiteralExpr* result = (LiteralExpr*)malloc(sizeof(LiteralExpr));
+    result->type = EXPR_LITERAL;
     switch (p->currentToken.type) {
         case TOK_IDENTIFIER: 
-            temp->litType = LIT_IDENTIFIER;
-            temp->identifier = p->currentToken.literal;
+            result->litType = LIT_IDENTIFIER;
+            result->identifier = p->currentToken.literal;
             break;
         case TOK_STRING:
-            temp->litType = LIT_STRING;
-            temp->string = p->currentToken.literal;
+            result->litType = LIT_STRING;
+            result->string = p->currentToken.literal;
             break;
 
         case TOK_INTEGER:
-            temp->litType = LIT_INTEGER;
-            temp->integer = strtol(p->currentToken.literal.str, NULL, 10);
+            result->litType = LIT_INTEGER;
+            result->integer = strtol(p->currentToken.literal.str, NULL, 10);
             string_delete(&p->currentToken.literal);
             break;
         
         case TOK_FLOAT:
-            temp->litType = LIT_FLOAT;
-            temp->_float = strtod(p->currentToken.literal.str, NULL);
+            result->litType = LIT_FLOAT;
+            result->_float = strtod(p->currentToken.literal.str, NULL);
             string_delete(&p->currentToken.literal);
             break;
 
         case TOK_TRUE:
         case TOK_FALSE:
-            temp->litType = LIT_BOOL;
-            temp->boolean = p->currentToken.type == TOK_TRUE;
+            result->litType = LIT_BOOL;
+            result->boolean = p->currentToken.type == TOK_TRUE;
             break;
         case TOK_NONE:
-            temp->litType = LIT_NONE;
-            temp->none = NULL;
+            result->litType = LIT_NONE;
+            result->none = NULL;
             break; 
         default:
-            free(temp);
+            free(result);
             free(result);
             parser_new_error(p, "Invalid expression\n"); 
     }
     parser_next_token(p);
-    return result;
+    return (Expr*)result;
 }
 
 
@@ -158,7 +124,6 @@ static ArrayList func_arg(Parser *p){
 }
 
 
-
 static Expr* call(Parser *p){
    Expr* expr = primary(p);
    while(match(p, TOK_LEFT_PAREN)){
@@ -167,7 +132,7 @@ static Expr* call(Parser *p){
             parser_new_error(p, "Invalid function name\n");
         }
 
-        LiteralExpr* lexpr = (LiteralExpr*)expr->expr;
+        LiteralExpr* lexpr = (LiteralExpr*)expr;
         if(lexpr->litType != LIT_IDENTIFIER){ 
             parser_new_error(p, "Invalid function name\n");
         }
@@ -276,9 +241,9 @@ static Expr* comparison(Parser *p){
 
 static Expr* not(Parser *p){
     Expr* expr = comparison(p);
-    while(match(p,TOK_AND)){
+    while(match(p,TOK_NOT)){
         TokenType op = parser_prev_token(p).type;
-        expr = create_logical_expr(expr, op, NULL);
+        expr = create_unary_expr(op, expr); 
     }
     return expr;
 }
@@ -288,7 +253,7 @@ static Expr* and(Parser *p){
     while(match(p,TOK_AND)){
         TokenType op = parser_prev_token(p).type;
         Expr* right = not(p);
-        expr = create_logical_expr(expr, op, right);
+        expr = create_binary_expr(expr, op, right);
     }
     return expr;
 }
@@ -300,7 +265,7 @@ static Expr* or(Parser *p){
     while(match(p,TOK_OR)){
         TokenType op = parser_prev_token(p).type;
         Expr* right = and(p);
-        expr = create_logical_expr(expr, op, right);
+        expr = create_binary_expr(expr, op, right);
     }
     return expr;
 }
@@ -309,5 +274,7 @@ static Expr* or(Parser *p){
 Expr* expression(Parser* p){
     return or(p); 
 }
+
+
 
 
