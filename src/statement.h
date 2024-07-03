@@ -52,6 +52,7 @@ typedef enum {
     STMT_IF,
     STMT_WHILE,
     STMT_FUNC,
+    STMT_ASSERT,
     STMT_RETURN, 
     STMT_PASS,
 }StatementType;
@@ -117,6 +118,14 @@ typedef struct {
     int parameters;
     Statement* body;
 } FunctionStmt;
+
+
+typedef struct {
+    StatementType type;
+    Expr* condition;
+    String msg;
+} AssertStmt;
+
 
 typedef struct {
     StatementType type;

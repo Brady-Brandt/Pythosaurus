@@ -92,7 +92,14 @@ Statement* create_func_stmt(String identifier, int parameters, Statement* body){
     return (Statement*)result;
 }
 
-
+Statement* create_assert_stmt(Expr* condition, String msg){
+    AssertStmt* result = malloc(sizeof(AssertStmt));
+    if(result == NULL) return NULL;
+    result->type = STMT_ASSERT;
+    result->condition = condition;
+    result->msg = msg;
+    return (Statement*)result;
+}
 
 Statement* create_return_stmt(Expr* value){
     ReturnStmt* result = malloc(sizeof(ReturnStmt));
@@ -267,6 +274,19 @@ Statement* function_statement(Parser *p){
 }
 
 
+Statement* assert_statement(Parser *p){
+    parser_consume_verified_token(p, TOK_DEF);
+    Expr* condition = expression(p);
+    String msg = DEFAULT_STR;
+    if(p->currentToken.type == TOK_COMMA){ 
+        parser_consume_verified_token(p, TOK_COMMA);
+        parser_expect_consume_token(p, TOK_STRING);
+        msg = parser_prev_token(p).literal;
+    }
+    return create_assert_stmt(condition, msg);
+}
+
+
 
 Statement* return_statement(Parser *p){
     parser_next_token(p);
@@ -298,6 +318,8 @@ Statement* statement(Parser *p){
                 return while_statement(p);
             case TOK_DEF:
                 return function_statement(p);
+            case TOK_ASSERT:
+                return assert_statement(p);
             case TOK_RETURN:
                 return return_statement(p);
             case TOK_PASS:
