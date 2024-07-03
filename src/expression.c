@@ -229,7 +229,7 @@ static Expr* bit_or(Parser *p){
 
 static Expr* comparison(Parser *p){ 
     Expr* expr = bit_or(p); 
-    while (match(p,TOK_GREATER_THAN,TOK_GREATER_EQUAL,TOK_LESS_EQUAL,TOK_LESS_THAN,TOK_EQUAL,TOK_LESS_THAN, TOK_IN, TOK_IS)) {
+    while (match(p,TOK_GREATER_THAN,TOK_GREATER_EQUAL,TOK_LESS_EQUAL,TOK_LESS_THAN,TOK_EQUAL,TOK_NOT_EQUAL,TOK_LESS_THAN, TOK_IN, TOK_IS)) {
       TokenType operator = parser_prev_token(p).type; 
       Expr* right = bit_or(p);
       expr = create_binary_expr(expr, operator, right);
@@ -277,4 +277,50 @@ Expr* expression(Parser* p){
 
 
 
+void delete_expr_tree(Expr* expression){
+    if(expression == NULL) return;
+    switch (expression->type) {
+        case EXPR_LITERAL: 
+            free(expression);
+            break;
 
+        case EXPR_BINARY:{
+            BinaryExpr* bexpr = (BinaryExpr*)expression;
+            if(bexpr->left != NULL){
+               delete_expr_tree(bexpr->left); 
+            }
+            if(bexpr->right != NULL){
+                delete_expr_tree(bexpr->left); 
+            }
+            free(bexpr);
+            expression = NULL;
+            break;
+        } 
+        case EXPR_GROUPING:
+            delete_expr_tree(expression);
+            break;
+
+        case EXPR_UNARY:{
+            UnaryExpr* uexpr = (UnaryExpr*)expression; 
+            if(uexpr->right != NULL){
+                free(uexpr->right);
+            }
+            free(uexpr);
+            break;
+        }
+
+        case EXPR_FUNC: {
+            FuncExpr* fexpr = (FuncExpr*)expression; 
+            for(int i = 0; i < fexpr->args.size; i++){
+                Expr* e = array_list_get(fexpr->args, Expr*, i);
+                delete_expr_tree(e);
+            }
+            array_list_delete(fexpr->args);
+            free(fexpr);
+            break;
+        }
+ 
+        default:
+            break;
+    }
+}
