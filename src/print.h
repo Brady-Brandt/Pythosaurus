@@ -6,6 +6,9 @@
 #include "expression.h"
 #include "statement.h"
 
+
+const char* get_literal_type(LiteralExpr* expr);
+
 void print_token(Token token);
 
 void print_tokens(ArrayList tokens);

@@ -104,7 +104,25 @@ static const char* token_strings[] = {
 };
 
 
+static const char* literal_strings[] =  
+{ 
+    "BOOL",
+    "INTEGER", 
+    "FLOAT", 
+    "STRING",
+    "IDENTIFIER",
+    "CLASS", 
+    "LIST", 
+    "DICT",
+    "NONE",
+    "UNINIT"
+};
 
+const char* get_literal_type(LiteralExpr* expr){
+    //return none if null or invalid
+    if(expr == NULL || expr->litType < 0 || expr->litType > 9) return literal_strings[8];
+    return literal_strings[expr->litType];
+}
 
 const char* get_token_type(TokenType t){
     return token_strings[t];
@@ -138,7 +156,7 @@ void print_expr(Expr* expression){
     if(expression == NULL) return;
     switch (expression->type) {
         case EXPR_LITERAL: {
-            LiteralExpr* lexpr = expression->expr;
+            LiteralExpr* lexpr = (LiteralExpr*)expression;
 
             switch (lexpr->litType) {
             case LIT_STRING:
@@ -151,7 +169,7 @@ void print_expr(Expr* expression){
                 printf("%ld", lexpr->integer);
                 break;
             case LIT_IDENTIFIER:
-                printf("Not implemented yet");
+                printf("%s", lexpr->identifier.str);
                 break;
             default:
                 printf("None");
@@ -159,7 +177,7 @@ void print_expr(Expr* expression){
             break;
         }
         case EXPR_BINARY:{
-            BinaryExpr* bexpr = expression->expr;
+            BinaryExpr* bexpr = (BinaryExpr*)expression;
             if(bexpr->left == NULL){
                 return;
             }
@@ -170,28 +188,15 @@ void print_expr(Expr* expression){
             }
             print_expr((Expr*)bexpr->right);
             break;
-        }
-        case EXPR_LOGICAL: {
-            LogicalExpr* logexpr = expression->expr;
-            if(logexpr->left == NULL){
-                return;
-            }
-            print_expr((Expr*)logexpr->left);
-            printf(" %s ", get_token_type(logexpr->op));
-            if(logexpr->right == NULL){
-                return;
-            }
-            print_expr((Expr*)logexpr->right);
-            break;
-        }
+        } 
         case EXPR_GROUPING:
             printf("(");
-            print_expr(expression->expr);
+            print_expr(((GroupingExpr*)expression)->expr);
             printf(")");
             break;
 
         case EXPR_UNARY:{
-            UnaryExpr* uexpr = expression->expr; 
+            UnaryExpr* uexpr = (UnaryExpr*)expression; 
             printf(" %s", get_token_type(uexpr->op));
             if(uexpr->right == NULL){
                 printf("Invalid unary operand\n");
@@ -202,7 +207,7 @@ void print_expr(Expr* expression){
         }
 
         case EXPR_FUNC: {
-            FuncExpr* fexpr = expression->expr;
+            FuncExpr* fexpr = (FuncExpr*)expression;
             printf("Func: %s ", fexpr->name.str);
             if(fexpr->args.data == NULL){
                 printf("No args");
@@ -231,14 +236,14 @@ void print_statement(Statement* statement){
     printf("Statement: ");
     switch (statement->type) {
         case STMT_ASSIGN: {
-            AssignStmt* s = (AssignStmt*)(statement->stmt);
+            AssignStmt* s = (AssignStmt*)(statement);
             printf("Var %s = ", s->identifier.str);
             print_expr(s->value);
             printf("\n");
             break;
         }
         case STMT_ASSIGN_OP: {
-            AssignOpStmt* s = (AssignOpStmt*)(statement->stmt);
+            AssignOpStmt* s = (AssignOpStmt*)(statement);
             printf("Var %s ", s->identifier.str);
             printf("%s ",get_token_type(s->op));
             print_expr(s->value);
@@ -246,15 +251,14 @@ void print_statement(Statement* statement){
             break;
         }
         case STMT_EXPR: {
-            ExprStmt* s = (ExprStmt*)(statement->stmt);
+            ExprStmt* s = (ExprStmt*)(statement);
             printf("Expression: ");
             print_expr(s->expr);
-            printf("\n");
             break;
         }
 
         case STMT_BLOCK: {
-            BlockStmt* s = (BlockStmt*)(statement->stmt);
+            BlockStmt* s = (BlockStmt*)(statement);
             printf("Block: \n");
             for(int i =0; i < s->statements.size; i++){
                 Statement* temp = array_list_get(s->statements, Statement*, i);
@@ -264,11 +268,19 @@ void print_statement(Statement* statement){
             break;
         }
         case STMT_IF: {
-            IfStmt* s = (IfStmt*)(statement->stmt);
+            IfStmt* s = (IfStmt*)(statement);
             printf("if ");
             print_expr(s->condition);
             printf("\n");
             print_statement(s->then);
+            ElifStmt* elifs = s->elif;
+            while(elifs != NULL){
+                printf("elif ");
+                print_expr(elifs->condition);
+                printf("\n");
+                print_statement(elifs->then);
+                elifs = (ElifStmt*)elifs->next;
+            }
             if(s->elseBranch != NULL){
                 printf("else\n");
                 print_statement(s->elseBranch);
@@ -276,7 +288,7 @@ void print_statement(Statement* statement){
             break;
         }
         case STMT_WHILE: {
-            WhileStmt* stmt = (WhileStmt*)(statement->stmt);
+            WhileStmt* stmt = (WhileStmt*)(statement);
             printf("While ");
             print_expr(stmt->condition);
             printf("Do:\n");
@@ -284,28 +296,25 @@ void print_statement(Statement* statement){
             break;
         }
         case STMT_FUNC: {
-            FunctionStmt* stmt = (FunctionStmt*)(statement->stmt);
-            printf("FunctionDef: %s ", stmt->identifier.str);
-            if(stmt->parameters.data == NULL){
-                printf("No args");
-            } 
-            for(int i = 0; i < stmt->parameters.size; i++){
-                String arg = array_list_get(stmt->parameters, String, i);
-                printf("%s", arg.str);
-                if(i + 1 < stmt->parameters.size){
-                    printf(",");
-                }
-            }
-            printf("\n");
+            FunctionStmt* stmt = (FunctionStmt*)(statement);
+            printf("FunctionDef: %s, Arg Count: %d\n", stmt->identifier.str, stmt->parameters); 
             print_statement(stmt->body);
             break;
         } 
         case STMT_RETURN: {
-            ReturnStmt* stmt = (ReturnStmt*)(statement->stmt);
+            ReturnStmt* stmt = (ReturnStmt*)(statement);
             if(stmt->value != NULL){
                 print_expr(stmt->value);
                 printf("\n");
             }
+            break;
+        }
+        case STMT_ASSERT: {
+            AssertStmt* stmt = (AssertStmt*)(statement);
+            printf("Assert: ");
+            print_expr(stmt->condition);
+            if(stmt->msg.size != 0) printf(" %s", stmt->msg.str);
+            printf("\n");
             break;
         }
         case STMT_PASS:
