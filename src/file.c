@@ -66,18 +66,20 @@ void file_eprint_line(File* f, unsigned int line){
         f->currentLine = 1;
     }
 
+    char c;
     while(f->currentLine != line){
         file_end_line(f);
-        char c = file_next_char(f);
+        c = file_next_char(f);
         if(c == EOF) return;
     }
 
     char buffer[128];
-    int buff_size = 0;
+    int buff_size = 1;
+    buffer[0] = c;
     //now we should be on the line we want to print 
     fprintf(stderr, "%s -> Line %d: ", f->name, line);
     while(f->currentLine == line){
-       char c = file_next_char(f); 
+       c = file_next_char(f); 
        buffer[buff_size++] = c;
        if(buff_size == 126){
             buffer[127] = '\0';
