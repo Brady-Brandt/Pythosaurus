@@ -240,7 +240,7 @@ ArrayList tokenize_file(File* file){
             case '\n':
                 if(tokenizer.currentString.size != 0) check_misc_string(&tokenizer);
                 tokenizer.line++;
-                if(prev_char(&tokenizer) == '\n') break; //ignore multiple new lines
+                if(get_prev_token(&tokenizer) == TOK_NEW_LINE) break; //ignore multiple new lines
                 add_token(&tokenizer, TOK_NEW_LINE);
                 break;
             case '\t':
@@ -358,8 +358,12 @@ ArrayList tokenize_file(File* file){
                       add_token_check_string(&tokenizer,TOK_RIGHT_BRACE);
                       break;
             case '#':
-                      add_token_check_string(&tokenizer,TOK_NEW_LINE);
+                      if(tokenizer.currentString.size != 0) check_misc_string(&tokenizer);
+                      //comments go to the end of a line 
                       file_end_line(tokenizer.file);
+                      tokenizer.line++;
+                      if(get_prev_token(&tokenizer) == TOK_NEW_LINE) break; //ignore multiple new lines
+                      add_token(&tokenizer, TOK_NEW_LINE);
                       break;
             case '.':
                       add_token_check_string(&tokenizer,TOK_DOT);
@@ -401,6 +405,7 @@ ArrayList tokenize_file(File* file){
     }
 END:
      return delete_tokenizer(&tokenizer);
+
 }
 
 
