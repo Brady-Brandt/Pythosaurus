@@ -3,6 +3,7 @@
 #include "expression.h"
 #include "arraylist.h"
 #include "parser.h"
+#include "print.h"
 #include "stringtype.h"
 #include "tokenizer.h"
 
@@ -93,8 +94,7 @@ static Expr* primary(Parser *p){
             break; 
         default:
             free(result);
-            free(result);
-            parser_new_error(p, "Invalid expression\n"); 
+            parser_new_error(p, "Invalid expression: %s\n", get_token_type(p->currentToken.type)); 
     }
     parser_next_token(p);
     return (Expr*)result;
@@ -240,12 +240,12 @@ static Expr* comparison(Parser *p){
 
 
 static Expr* not(Parser *p){
-    Expr* expr = comparison(p);
     while(match(p,TOK_NOT)){
         TokenType op = parser_prev_token(p).type;
-        expr = create_unary_expr(op, expr); 
+        Expr* expr = comparison(p);
+        return create_unary_expr(op, expr); 
     }
-    return expr;
+    return comparison(p);
 }
 
 static Expr* and(Parser *p){
