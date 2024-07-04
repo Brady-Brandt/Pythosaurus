@@ -4,8 +4,8 @@
 
 
 void allocator_create(Allocator *alloc, size_t obj_size, long size){
-    alloc->cap = size;
-    alloc->data = malloc(size);
+    alloc->cap = size * obj_size;
+    alloc->data = malloc(size * obj_size);
     alloc->offset = 0;
     alloc->obj_size = obj_size;
 }
