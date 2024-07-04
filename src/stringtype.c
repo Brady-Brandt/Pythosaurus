@@ -26,8 +26,8 @@ String string_create(){
 String string_create_with_cap(uint32_t size){
     String result;
     result.size = 0;
-    result.capacity = size;
-    result.str = malloc(size * sizeof(char));
+    result.capacity = size + 1;
+    result.str = malloc(size * sizeof(char) + 1);
     result.str[0] = 0; 
     return result;
 }
@@ -71,25 +71,18 @@ void string_delete(String* s){
 
 
 String string_concat(String* s1, String* s2){
-    size_t total_size = s1->size + s2->size;
-    String result = string_create_with_cap(total_size + 1); 
-    for(int i = 0; i < s1->size; i++){
-        result.str[i] = s1->str[i];
-        result.size++;
-    }
-
-    int index = 0;
-    for(int i = s1->size; i < total_size; i++){
-        result.str[i] = s2->str[index++];
-        result.size++;
-    }
+    uint32_t total_size = s1->size + s2->size;
+    String result = string_create_with_cap(total_size); 
+    strcpy(result.str,s1->str); 
+    strcat(result.str, s2->str); 
+    result.size = total_size; 
     result.str[total_size + 1] = '\0';
     return result;
 }
 
 String string_multiply(String* s1, uint32_t times){
     uint32_t size = s1->size * times; 
-    String result = string_create_with_cap(size + 1); 
+    String result = string_create_with_cap(size); 
     result.size = size;
     uint32_t index = 0;
     for(int i = 0; i < times; i++){
