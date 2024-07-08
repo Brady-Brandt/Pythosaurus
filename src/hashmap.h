@@ -20,7 +20,7 @@ typedef struct {
 
 //delete_func determines what to do when items are deleted from the hashmap 
 //if null is inputted, it will just call free on the input data
-HashMap hash_map_create(unsigned int capacity, delete_func delete);
+HashMap* hash_map_create(unsigned int capacity, delete_func delete);
 
 
 void hash_map_delete(HashMap* map);

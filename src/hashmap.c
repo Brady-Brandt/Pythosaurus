@@ -41,21 +41,22 @@ static unsigned int find_prime(unsigned int cap){
 }
 
 
-HashMap hash_map_create(unsigned int capacity, delete_func delete){
+HashMap* hash_map_create(unsigned int capacity, delete_func delete){
     if(capacity == 0 || capacity > MAX_HASHMAP_SIZE){
         fprintf(stderr, "Failed to create hashmap invalid size");
-        return (HashMap){0,0,0,0,0,0};
+        return NULL;
     }
-    HashMap result;
-    result.capacity = capacity;
-    result.size = 0;
-    result.delete = delete;
-    result.data = NULL;
+    HashMap* result = malloc(sizeof(HashMap));
+    if(result == NULL) return result;
+    result->capacity = capacity;
+    result->size = 0;
+    result->delete = delete;
+    result->data = NULL;
     srand(4);
-    result.data = calloc(capacity, sizeof(HashEntry*));
-    result.p = find_prime(result.capacity);
-    result.a = rand() % (result.p - 1) + 1;
-    result.b = rand() % (result.p - 1);
+    result->data = calloc(capacity, sizeof(HashEntry*));
+    result->p = find_prime(result->capacity);
+    result->a = rand() % (result->p - 1) + 1;
+    result->b = rand() % (result->p - 1);
     return result;
 }
 
@@ -82,9 +83,7 @@ void hash_map_delete(HashMap* map){
         if(map->size == 0) break;
     }
     free(map->data);
-    map->data = NULL;
-    map->capacity = 0;
-    map->size = 0;
+    free(map);
 }
 
 //performs cyclic shift has function
