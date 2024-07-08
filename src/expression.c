@@ -8,6 +8,10 @@
 #include "tokenizer.h"
 
 
+
+LiteralExpr _none = (LiteralExpr){EXPR_LITERAL, LIT_NONE};
+
+
 static Expr* create_binary_expr(Expr* left, TokenType operator,Expr* right){
     BinaryExpr* result = malloc(sizeof(BinaryExpr));
     if(result == NULL) return NULL;
@@ -30,7 +34,7 @@ static Expr* create_unary_expr(TokenType operator, Expr* right){
 }
 
 
-static Expr* create_func_expr(String name, ArrayList args){
+static Expr* create_func_expr(String* name, ArrayList args){
     FuncExpr* result = malloc(sizeof(FuncExpr));
     if(result == NULL) return NULL;
     result->type = EXPR_FUNC;
@@ -57,6 +61,9 @@ static Expr* primary(Parser *p){
        parser_consume_token(p, TOK_RIGHT_PAREN, "Expected closing ')'\n");
        return create_grouping_expr(e);
     }
+    if(p->currentToken.type == TOK_NONE){
+        return (Expr*)None;
+    }
 
     //it should be a literal expression here 
     LiteralExpr* result = (LiteralExpr*)malloc(sizeof(LiteralExpr));
@@ -73,14 +80,14 @@ static Expr* primary(Parser *p){
 
         case TOK_INTEGER:
             result->litType = LIT_INTEGER;
-            result->integer = strtol(p->currentToken.literal.str, NULL, 10);
-            string_delete(&p->currentToken.literal);
+            result->integer = strtol(p->currentToken.literal->str, NULL, 10);
+            string_delete(p->currentToken.literal);
             break;
         
         case TOK_FLOAT:
             result->litType = LIT_FLOAT;
-            result->_float = strtod(p->currentToken.literal.str, NULL);
-            string_delete(&p->currentToken.literal);
+            result->_float = strtod(p->currentToken.literal->str, NULL);
+            string_delete(p->currentToken.literal);
             break;
 
         case TOK_TRUE:
@@ -88,10 +95,6 @@ static Expr* primary(Parser *p){
             result->litType = LIT_BOOL;
             result->boolean = p->currentToken.type == TOK_TRUE;
             break;
-        case TOK_NONE:
-            result->litType = LIT_NONE;
-            result->none = NULL;
-            break; 
         default:
             free(result);
             parser_new_error(p, "Invalid expression: %s\n", get_token_type(p->currentToken.type)); 
@@ -280,8 +283,10 @@ Expr* expression(Parser* p){
 void delete_expr_tree(Expr* expression){
     if(expression == NULL) return;
     switch (expression->type) {
-        case EXPR_LITERAL: 
-            free(expression);
+        case EXPR_LITERAL:
+            if(((LiteralExpr*)expression)->litType != LIT_NONE){
+                free(expression);
+            }
             break;
 
         case EXPR_BINARY:{
@@ -290,7 +295,7 @@ void delete_expr_tree(Expr* expression){
                delete_expr_tree(bexpr->left); 
             }
             if(bexpr->right != NULL){
-                delete_expr_tree(bexpr->left); 
+                delete_expr_tree(bexpr->right); 
             }
             free(bexpr);
             expression = NULL;

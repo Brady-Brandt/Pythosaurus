@@ -72,19 +72,23 @@ typedef struct {
     ExprType type;
     LiteralType litType;
     union {
-        String string;
+        String* string;
         long integer;
         double _float;
-        String identifier;
+        String* identifier;
         bool boolean;
-        void* none;
     };
 } LiteralExpr;
+
+
+extern LiteralExpr _none;
+
+#define None (&_none)
 
 //represents a function call
 typedef struct {
     ExprType type;
-    String name;
+    String* name;
     ArrayList args; //arraylist of expressions 
 } FuncExpr;
 
