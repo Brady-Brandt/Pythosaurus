@@ -63,21 +63,12 @@
  *
 */
 
-#define PARSER_ERROR 10 
-
-typedef struct {
-    bool isActive; //checks if savedState is set
-    jmp_buf savedState;
-    File* file;
-} ErrorHandler;
-
-
 typedef struct {
     ArrayList tokens; 
     Token currentToken; 
     unsigned int tokenIndex; //index of the current token
     unsigned int indentationLevel;
-    ErrorHandler err;
+    File* file;
 } Parser;
 
 

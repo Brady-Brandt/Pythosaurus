@@ -6,7 +6,6 @@
 #include "tokenizer.h"
 #include "print.h"
 
-#include <setjmp.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -20,21 +19,10 @@ void parser_create(Parser *p, File* f, ArrayList tokens){
         exit(1);
     }
     p->tokens = tokens; 
-    p->currentToken = (Token){TOK_MAX, DEFAULT_STR};
+    p->currentToken = (Token){TOK_MAX, NULL};
     p->tokenIndex = 0;
     p->indentationLevel = 0;
-    p->err.file = f;
-    p->err.isActive = false;
-}
-
-
-noreturn static void parser_throw_error(Parser *p){
-    if(p->err.isActive){ 
-        longjmp(p->err.savedState, PARSER_ERROR);
-    } else {
-        fprintf(stderr, "Unrecoverabled error, exiting...");
-        exit(EXIT_FAILURE);
-    }
+    p->file = f;
 }
 
 
@@ -43,9 +31,6 @@ static void parser_delete(Parser *p){
     p->tokenIndex = 0;
     array_list_delete(p->tokens);
 }
-
-
-
 
 
 Token parser_next_token(Parser *p){
@@ -61,7 +46,8 @@ Token parser_next_token(Parser *p){
         return res;
 
     }
-    return (Token){TOK_EOF, DEFAULT_STR};  
+    p->currentToken = (Token){TOK_EOF, NULL};  
+    return p->currentToken;
 }
 
 
@@ -71,7 +57,8 @@ Token parser_prev_token(Parser *p){
     if(p->tokenIndex > 0 && p->tokenIndex <= p->tokens.size){
         return array_list_get(p->tokens, Token, (p->tokenIndex - 1));
     }
-    return (Token){TOK_EOF, DEFAULT_STR};
+    p->currentToken = (Token){TOK_EOF, NULL};  
+    return (Token){TOK_EOF, NULL};
 }
 
 
@@ -80,15 +67,15 @@ Token parser_consume_token(Parser *p, TokenType expected, const char* fmt, ...){
        //its fine if we come across an EOF instead of a new line
        //we treat them as essentially the same thing
        if(expected == TOK_NEW_LINE && p->currentToken.type == TOK_EOF){
-            return (Token){TOK_EOF, DEFAULT_STR};
+            return (Token){TOK_EOF, NULL};
        }
         va_list list;
         va_start(list, fmt);
         fprintf(stderr, "Error: \n");
-        file_eprint_line(p->err.file, p->currentToken.line);
+        file_eprint_line(p->file, p->currentToken.line);
         vfprintf(stderr, fmt, list);
         va_end(list);
-        parser_throw_error(p);
+        exit(EXIT_FAILURE);
    }
    return parser_next_token(p);
 }
@@ -101,10 +88,7 @@ void parser_expect_token(Parser *p, TokenType expected){
         if(expected == TOK_NEW_LINE && p->currentToken.type == TOK_EOF){
             return;
         }
-        fprintf(stderr, "Error: \n");
-        file_eprint_line(p->err.file, p->currentToken.line);
-        fprintf(stderr, "Error expected %s found %s\n", get_token_type(expected), get_token_type(p->currentToken.type));
-        parser_throw_error(p);
+        parser_new_error(p, "Error expected %s found %s\n",get_token_type(expected), get_token_type(p->currentToken.type));
     }
 }
 
@@ -131,12 +115,12 @@ void parser_try_consume_token(Parser *p, TokenType tok){
 
 noreturn void parser_new_error(Parser *p, const char* fmt, ...){
     fprintf(stderr, "Error: \n");
-    file_eprint_line(p->err.file, p->currentToken.line);
+    file_eprint_line(p->file, p->currentToken.line);
     va_list list;
     va_start(list, fmt);
     vfprintf(stderr, fmt, list);
     va_end(list);
-    parser_throw_error(p);
+    exit(EXIT_FAILURE);
 }
 
 
@@ -145,7 +129,7 @@ Token parser_peek_token(Parser *p){
     if(p->tokenIndex + 1 < p->tokens.size){
         return array_list_get(p->tokens, Token, p->tokenIndex + 1);
     }
-    return (Token){TOK_EOF, DEFAULT_STR};  
+    return (Token){TOK_EOF, NULL};  
 }
 
 
@@ -214,7 +198,7 @@ ArrayList parse_tokens(Parser *p){
             parser_new_error(p, "Unexpected statement");
         }
         array_list_append(statements, Statement*, stmt);
-    } 
+    }
     parser_delete(p);
     return statements;
 }
