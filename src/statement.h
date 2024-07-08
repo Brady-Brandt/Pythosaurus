@@ -4,6 +4,7 @@
 #include "stringtype.h"
 #include "expression.h"
 #include "tokenizer.h"
+#include <stdint.h>
 
 /*
 stmt = FunctionDef(identifier name, arguments args,
@@ -59,18 +60,21 @@ typedef enum {
 
 typedef struct {
     StatementType type;
+    uint32_t line;
     void* stmt;
 } Statement;
 
 typedef struct {
     StatementType type;
-    String identifier;
+    uint32_t line;
+    String* identifier;
     Expr* value;
 } AssignStmt; 
 
 typedef struct {
     StatementType type;
-    String identifier;
+    uint32_t line;
+    String* identifier;
     TokenType op;
     Expr* value;
 } AssignOpStmt; 
@@ -78,12 +82,14 @@ typedef struct {
 
 typedef struct {
     StatementType type;
+    uint32_t line;
     Expr* expr;
 } ExprStmt;
 
 
 typedef struct {
     StatementType type;
+    uint32_t line;
     BlockType BlockType;
     ArrayList statements;
 } BlockStmt;
@@ -93,12 +99,14 @@ typedef struct {
 //inside of the if statement
 typedef struct {
     Expr* condition;
+    uint32_t line;
     Statement* then;
     struct ElifStmt* next;
 } ElifStmt;
 
 typedef struct {
     StatementType type;
+    uint32_t line;
     Expr* condition;
     ElifStmt* elif;
     Statement* then;
@@ -108,27 +116,31 @@ typedef struct {
 
 typedef struct {
     StatementType type;
+    uint32_t line;
     Expr* condition;
     Statement* _while;
 } WhileStmt;
 
 typedef struct {
     StatementType type;
-    String identifier;
-    int parameters;
+    uint32_t line;
+    String* identifier;
+    ArrayList parameters;
     Statement* body;
 } FunctionStmt;
 
 
 typedef struct {
     StatementType type;
+    uint32_t line;
     Expr* condition;
-    String msg;
+    String* msg;
 } AssertStmt;
 
 
 typedef struct {
     StatementType type;
+    uint32_t line;
     Expr* value;
 } ReturnStmt;
 

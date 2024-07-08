@@ -7,112 +7,123 @@
 #include "tokenizer.h"
 
 
-#include <setjmp.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 
-Statement* create_assign_stmt(String id, Expr* value){
+static Statement* create_assign_stmt(uint32_t line, String* id, Expr* value){
     AssignStmt* result = malloc(sizeof(AssignStmt));
     if(result == NULL) return NULL;
     result->type = STMT_ASSIGN;
+    result->line = line;
     result->identifier = id;
     result->value = value; 
     return (Statement*)result;
 }
 
 
-
-Statement* create_op_assign_stmt(String id, TokenType operator, Expr* value){
+static Statement* create_op_assign_stmt(uint32_t line, String* id, TokenType operator, Expr* value){
     AssignOpStmt* result = malloc(sizeof(AssignOpStmt));
     if(result == NULL) return NULL;
     result->type = STMT_ASSIGN_OP;
     result->identifier = id;
+    result->line = line;
     result->value = value;
     result->op = operator;
     return (Statement*)result;
 }
 
 
-Statement* create_expr_stmt(Expr* expr){
+static Statement* create_expr_stmt(uint32_t line, Expr* expr){
     ExprStmt* result = malloc(sizeof(ExprStmt));
     if(result == NULL) return NULL;
     result->type = STMT_EXPR;
+    result->line = line;
     result->expr = expr; 
     return (Statement*)result;
 }
 
 
-Statement* create_block_stmt(ArrayList statements){
+static Statement* create_block_stmt(uint32_t line, ArrayList statements){
     BlockStmt* result = malloc(sizeof(BlockStmt));
     if(result == NULL) return NULL;
     result->type = STMT_BLOCK;
+    //the first line of the block 
+    result->line = line;
     result->statements= statements; 
     return (Statement*)result;
 }
 
-Statement* create_if_stmt(Expr* condition, Statement* then, ElifStmt* elif, Statement* elseBranch){
+static Statement* create_if_stmt(uint32_t line, Expr* condition, Statement* then, ElifStmt* elif, Statement* elseBranch){
     IfStmt* result = malloc(sizeof(IfStmt));
     if(result == NULL) return NULL;
     result->type = STMT_IF;
     result->condition = condition;
+    result->line = line;
     result->then = then;
     result->elif = elif;
     result->elseBranch = elseBranch;
     return (Statement*)result;
 }
 
-ElifStmt* create_elif_stmt(Expr* condition, Statement* then){
+static ElifStmt* create_elif_stmt(uint32_t line, Expr* condition, Statement* then){
     ElifStmt* result = malloc(sizeof(ElifStmt));
     if(result == NULL) return NULL;
     result->condition = condition;
+    result->line = line;
     result->then = then;
     result->next = NULL;
     return result;
 }
 
 
-Statement* create_while_stmt(Expr* condition, Statement* _while){
+static Statement* create_while_stmt(uint32_t line, Expr* condition, Statement* _while){
     WhileStmt* result = malloc(sizeof(WhileStmt));
     if(result == NULL) return NULL;
     result->type = STMT_WHILE;
+    result->line = line;
     result->condition = condition;
     result->_while = _while;
     return (Statement*)result;
 }
 
 
-Statement* create_func_stmt(String identifier, int parameters, Statement* body){
+static Statement* create_func_stmt(uint32_t line, String* identifier, ArrayList parameters, Statement* body){
     FunctionStmt* result = malloc(sizeof(FunctionStmt));
     if(result == NULL) return NULL;
     result->type = STMT_FUNC;
+    result->line = line;
     result->identifier = identifier;
     result->parameters = parameters;
     result->body = body;
     return (Statement*)result;
 }
 
-Statement* create_assert_stmt(Expr* condition, String msg){
+static Statement* create_assert_stmt(uint32_t line, Expr* condition, String* msg){
     AssertStmt* result = malloc(sizeof(AssertStmt));
     if(result == NULL) return NULL;
     result->type = STMT_ASSERT;
+    result->line = line;
     result->condition = condition;
     result->msg = msg;
     return (Statement*)result;
 }
 
-Statement* create_return_stmt(Expr* value){
+static Statement* create_return_stmt(uint32_t line, Expr* value){
     ReturnStmt* result = malloc(sizeof(ReturnStmt));
     if(result == NULL) return NULL;
+    result->line = line;
     result->type = STMT_RETURN;
     result->value = value; 
     return (Statement*)result;
 }
 
-Statement* create_pass_stmt(){
+static Statement* create_pass_stmt(uint32_t line){
     Statement* result = malloc(sizeof(Statement));
     if(result == NULL) return NULL;
     result->type = STMT_PASS;
+    result->line = line;
     result = NULL; 
     return result;
 }
@@ -120,14 +131,15 @@ Statement* create_pass_stmt(){
 
 
 
-Statement* assign_statement(Parser* p){
+static Statement* assign_statement(Parser* p){
     switch (parser_peek_token(p).type) {
         case TOK_ASSIGN: {
-            String identifier = p->currentToken.literal;
+            String* identifier = p->currentToken.literal;
+            uint32_t line = p->currentToken.line;
             parser_consume_verified_token(p, TOK_IDENTIFIER);
             parser_consume_verified_token(p, TOK_ASSIGN);
             Expr* value = expression(p);
-            Statement* stmt = create_assign_stmt(identifier, value); //TODO: ADD SUPORT FOR SEMICOLONS TO TERMINATE 
+            Statement* stmt = create_assign_stmt(line, identifier, value); //TODO: ADD SUPORT FOR SEMICOLONS TO TERMINATE 
             //STATEMENTS
             parser_expect_token(p, TOK_NEW_LINE);
             return stmt;
@@ -144,29 +156,32 @@ Statement* assign_statement(Parser* p){
         case TOK_BIT_AND_ASSIGN:
         case TOK_BIT_OR_ASSIGN:
         case TOK_BIT_XOR_ASSIGN:{
-            String identifier = p->currentToken.literal;  
+            String* identifier = p->currentToken.literal; 
+            uint32_t line = p->currentToken.line;
             Token operation = parser_consume_verified_token(p, TOK_IDENTIFIER);
             //skip over the op
             parser_next_token(p);
             Expr* value = expression(p);
-            Statement* stmt = create_op_assign_stmt(identifier, operation.type, value);
+            Statement* stmt = create_op_assign_stmt(line, identifier, operation.type, value);
             parser_expect_token(p, TOK_NEW_LINE);
             return stmt; 
         }
         default:{
             Expr* value = expression(p);
+            uint32_t line = p->currentToken.line;
             parser_expect_token(p, TOK_NEW_LINE);
-            return create_expr_stmt(value);
+            return create_expr_stmt(line, value);
         } 
     }      
 }
 
 
 
-Statement* block_statement(Parser* p, unsigned int expected_indent){
+static Statement* block_statement(Parser* p, unsigned int expected_indent){
     p->indentationLevel++;
     ArrayList statements;
     array_list_create_cap(statements, Statement*, 10);
+    uint32_t line = p->currentToken.line;
     bool is_correct_indent = parser_match_indentation_level(p, expected_indent);
 
     //each block must contain at least one statement 
@@ -182,13 +197,14 @@ Statement* block_statement(Parser* p, unsigned int expected_indent){
     }
 
     p->indentationLevel--;
-    return create_block_stmt(statements);
+    return create_block_stmt(line, statements);
 }
 
 
 
-Statement* if_statement(Parser *p){
+static Statement* if_statement(Parser *p){
     unsigned int expected_indent = p->indentationLevel + 1;
+    uint32_t if_line = p->currentToken.line;
     parser_consume_verified_token(p, TOK_IF);
     Expr* condition = expression(p);
     parser_expect_consume_token(p, TOK_COLON);
@@ -205,10 +221,11 @@ Statement* if_statement(Parser *p){
     while(parser_match_indentation_level(p, expected_indent - 1)){
         if(match(p, TOK_ELIF)){ 
             Expr* elif_condition = expression(p);
+            uint32_t elif_line = p->currentToken.line;
             parser_expect_consume_token(p, TOK_COLON);
             parser_expect_consume_token(p, TOK_NEW_LINE);
             Statement* elif_then = block_statement(p, expected_indent);
-            ElifStmt* elif_stmt = create_elif_stmt(elif_condition, elif_then);
+            ElifStmt* elif_stmt = create_elif_stmt(elif_line, elif_condition, elif_then);
             if(elif == NULL){
                 elif = elif_stmt;
             } else{
@@ -229,38 +246,40 @@ Statement* if_statement(Parser *p){
         }
         parser_save_state(p, &pstate);
     }
-    return create_if_stmt(condition, then, elif, elseBranch);
+    return create_if_stmt(if_line, condition, then, elif, elseBranch);
 }
 
 
-Statement* while_statement(Parser *p){
+static Statement* while_statement(Parser *p){
     unsigned int expected_indent = p->indentationLevel + 1;
+    uint32_t line = p->currentToken.line;
     parser_consume_verified_token(p, TOK_WHILE);
     Expr* cond = expression(p);
     parser_expect_consume_token(p, TOK_COLON);
     parser_expect_consume_token(p, TOK_NEW_LINE);
     Statement* _while = block_statement(p, expected_indent);
-    return create_while_stmt(cond, _while);
+    return create_while_stmt(line, cond, _while);
 }
 
 
 
-Statement* function_statement(Parser *p){
+static Statement* function_statement(Parser *p){
+    uint32_t line = p->currentToken.line;
     parser_consume_verified_token(p, TOK_DEF);
     parser_expect_consume_token(p, TOK_IDENTIFIER);
-    String identifier = parser_prev_token(p).literal;
+    String* identifier = parser_prev_token(p).literal;
     parser_expect_consume_token(p, TOK_LEFT_PAREN);
-    int parameters = 0;
+    ArrayList params;
+    array_list_create_cap(params, String*, 10);
 
     //TODO: VARADIC AND KEYWORD ARGS 
     if(p->currentToken.type != TOK_RIGHT_PAREN){
        do {
-           if(parameters >= 10){
-                parser_new_error(p, "Invalid Parameter count: %s. Functions only support 10 parameters\n", identifier.str);
-           }
-            
+           if(params.size >= 10){
+                parser_new_error(p, "Invalid Parameter count: %s. Functions only support 10 parameters\n", identifier->str);
+           } 
            parser_expect_token(p, TOK_IDENTIFIER);
-           parameters++;
+           array_list_append(params, String*, p->currentToken.literal);
            parser_next_token(p);
        }while (match(p, TOK_COMMA)); 
     }
@@ -270,66 +289,67 @@ Statement* function_statement(Parser *p){
     parser_expect_consume_token(p, TOK_NEW_LINE);
     unsigned int expected_indent = p->indentationLevel + 1;
     Statement* body = block_statement(p, expected_indent);
-    return create_func_stmt(identifier, parameters, body);
+    return create_func_stmt(line, identifier, params, body);
 }
 
 
-Statement* assert_statement(Parser *p){
-    parser_consume_verified_token(p, TOK_DEF);
+static Statement* assert_statement(Parser *p){
+    uint32_t line = p->currentToken.line;
+    parser_consume_verified_token(p, TOK_ASSERT);
     Expr* condition = expression(p);
-    String msg = DEFAULT_STR;
+    String* msg = NULL;
     if(p->currentToken.type == TOK_COMMA){ 
         parser_consume_verified_token(p, TOK_COMMA);
         parser_expect_consume_token(p, TOK_STRING);
         msg = parser_prev_token(p).literal;
     }
-    return create_assert_stmt(condition, msg);
+    parser_expect_consume_token(p, TOK_NEW_LINE);
+    return create_assert_stmt(line, condition, msg);
 }
 
 
 
-Statement* return_statement(Parser *p){
-    parser_next_token(p);
-    Expr* value = NULL;
+static Statement* return_statement(Parser *p){
+    uint32_t line = p->currentToken.line;
+    parser_consume_verified_token(p, TOK_RETURN);
+    Expr* value = (Expr*) None;
     if(p->currentToken.type != TOK_NEW_LINE){
         value = expression(p); 
     }
-    return create_return_stmt(value);
+    return create_return_stmt(line, value);
 }
 
 
-Statement* pass_statement(Parser *p){
-    parser_next_token(p);
+static Statement* pass_statement(Parser *p){
+    uint32_t line = p->currentToken.line;
+    parser_consume_verified_token(p, TOK_PASS);
     parser_expect_token(p, TOK_NEW_LINE);
-    return create_pass_stmt();
+    return create_pass_stmt(line);
 }
 
 
 Statement* statement(Parser *p){
-    parser_try_consume_token(p, TOK_NEW_LINE);
-    p->err.isActive = true;
-    if(setjmp(p->err.savedState) != PARSER_ERROR){
-        switch(p->currentToken.type){
-            case TOK_IDENTIFIER:
-                return assign_statement(p);
-            case TOK_IF:
-                return if_statement(p);
-            case TOK_WHILE:
-                return while_statement(p);
-            case TOK_DEF:
-                return function_statement(p);
-            case TOK_ASSERT:
-                return assert_statement(p);
-            case TOK_RETURN:
-                return return_statement(p);
-            case TOK_PASS:
-                return pass_statement(p);
-            default:
-                parser_next_token(p);
-                return NULL;
-        }
-    } else {
-        exit(EXIT_FAILURE);
+    parser_try_consume_token(p, TOK_NEW_LINE); 
+    switch(p->currentToken.type){
+        case TOK_IDENTIFIER:
+            return assign_statement(p);
+        case TOK_IF:
+            return if_statement(p);
+        case TOK_WHILE:
+            return while_statement(p);
+        case TOK_DEF:
+            return function_statement(p);
+        case TOK_ASSERT:
+            return assert_statement(p);
+        case TOK_RETURN:
+            return return_statement(p);
+        case TOK_PASS:
+            return pass_statement(p);
+        case TOK_EOF:
+            return NULL;
+        default:
+            parser_new_error(p, "Not Implemented error %s", get_token_type(p->currentToken.type));
+            return NULL;
     } 
 }
 
@@ -340,7 +360,7 @@ void delete_statement(Statement* statement){
         case STMT_ASSIGN: {
             AssignStmt* s = (AssignStmt*)(statement);
             delete_expr_tree(s->value);
-            string_delete(&s->identifier);
+            string_delete(s->identifier);
             free(s);
             s = NULL;
             break;
@@ -348,7 +368,7 @@ void delete_statement(Statement* statement){
         case STMT_ASSIGN_OP: {
             AssignOpStmt* s = (AssignOpStmt*)(statement);
             delete_expr_tree(s->value);
-            string_delete(&s->identifier);
+            string_delete(s->identifier);
             free(s);
             break;
         }
@@ -396,7 +416,7 @@ void delete_statement(Statement* statement){
         case STMT_FUNC: {
             FunctionStmt* s = (FunctionStmt*)(statement);
             delete_statement(s->body);
-            string_delete(&s->identifier);
+            string_delete(s->identifier);
             free(s);
             break;
         } 
