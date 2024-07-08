@@ -114,7 +114,7 @@ typedef enum {
 
 typedef struct {
     TokenType type;
-    String literal;
+    String* literal;
     unsigned int line;
 } Token;
 

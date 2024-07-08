@@ -18,7 +18,7 @@ typedef struct {
    File* file;
    char currentChar;
    char prevChar;
-   String currentString;
+   String* currentString;
 } Tokenizer;
 
 
@@ -29,11 +29,11 @@ static void tokenizer_create(Tokenizer *tokenizer, File* file){
     tokenizer->currentChar = '\0';
     tokenizer->prevChar = '\0';
     tokenizer->currentString = string_create();
-    }
+}
 
 
 static ArrayList delete_tokenizer(Tokenizer *tokenizer){
-    string_delete(&tokenizer->currentString);
+    string_delete(tokenizer->currentString);
     return tokenizer->tokens;
 }
 
@@ -61,11 +61,6 @@ TokenType get_prev_token(Tokenizer *tokenizer){
 }
 
 
-void token_delete(Token* t){
-    t->type = TOK_UNKOWN;
-    string_delete(&t->literal);
-}
-
 static void add_token(Tokenizer *tokenizer, TokenType type){
     Token token;
     token.type = type;
@@ -75,11 +70,11 @@ static void add_token(Tokenizer *tokenizer, TokenType type){
         case TOK_FLOAT:
         case TOK_STRING:
         case TOK_INTEGER: 
-            token.literal = string_from_str(tokenizer->currentString.str); 
-            string_clear(&tokenizer->currentString);
+            token.literal = string_from_str(tokenizer->currentString->str); 
+            string_clear(tokenizer->currentString);
             break;
         default: 
-            token.literal = DEFAULT_STR; 
+            token.literal = NULL; 
     }
     array_list_append(tokenizer->tokens, Token, token);
 }
@@ -91,46 +86,46 @@ static void add_token(Tokenizer *tokenizer, TokenType type){
  */
 static void check_misc_string(Tokenizer *tokenizer){
     //pretty much just as fast as using a hashmap 
-    if(strcmp("False", tokenizer->currentString.str) == 0) add_token(tokenizer, TOK_FALSE);
-    else if(strcmp("True", tokenizer->currentString.str) == 0) add_token(tokenizer, TOK_TRUE);
-    else if(strcmp("None", tokenizer->currentString.str) == 0) add_token(tokenizer, TOK_NONE);
-    else if(strcmp("and", tokenizer->currentString.str) == 0) add_token(tokenizer, TOK_AND);
-    else if(strcmp("as", tokenizer->currentString.str) == 0) add_token(tokenizer, TOK_AS);
-    else if(strcmp("assert", tokenizer->currentString.str) == 0) add_token(tokenizer, TOK_ASSERT);
-    else if(strcmp("break", tokenizer->currentString.str) == 0) add_token(tokenizer, TOK_BREAK);
-    else if(strcmp("class", tokenizer->currentString.str) == 0) add_token(tokenizer, TOK_CLASS);
-    else if(strcmp("continue", tokenizer->currentString.str) == 0) add_token(tokenizer, TOK_CONTINUE);
-    else if(strcmp("def", tokenizer->currentString.str) == 0) add_token(tokenizer, TOK_DEF);
-    else if(strcmp("del", tokenizer->currentString.str) == 0) add_token(tokenizer, TOK_DEL);
-    else if(strcmp("elif", tokenizer->currentString.str) == 0) add_token(tokenizer, TOK_ELIF);
-    else if(strcmp("else", tokenizer->currentString.str) == 0) add_token(tokenizer, TOK_ELSE);
-    else if(strcmp("except", tokenizer->currentString.str) == 0) add_token(tokenizer, TOK_EXCEPT);
-    else if(strcmp("finally", tokenizer->currentString.str) == 0) add_token(tokenizer, TOK_FINALLY);
-    else if(strcmp("for", tokenizer->currentString.str) == 0) add_token(tokenizer, TOK_FOR);
-    else if(strcmp("from", tokenizer->currentString.str) == 0) add_token(tokenizer, TOK_FROM);
-    else if(strcmp("global", tokenizer->currentString.str) == 0) add_token(tokenizer, TOK_GLOBAL);
-    else if(strcmp("import", tokenizer->currentString.str) == 0) add_token(tokenizer, TOK_IMPORT);
-    else if(strcmp("if", tokenizer->currentString.str) == 0) add_token(tokenizer, TOK_IF);
-    else if(strcmp("is", tokenizer->currentString.str) == 0) add_token(tokenizer, TOK_IS);
-    else if(strcmp("lambda", tokenizer->currentString.str) == 0) add_token(tokenizer, TOK_LAMBDA);
-    else if(strcmp("in", tokenizer->currentString.str) == 0) add_token(tokenizer, TOK_IN);
-    else if(strcmp("nonlocal", tokenizer->currentString.str) == 0) add_token(tokenizer, TOK_NONLOCAL);
-    else if(strcmp("not", tokenizer->currentString.str) == 0) add_token(tokenizer, TOK_NOT);
-    else if(strcmp("pass", tokenizer->currentString.str) == 0) add_token(tokenizer, TOK_PASS);
-    else if(strcmp("raise", tokenizer->currentString.str) == 0) add_token(tokenizer, TOK_RAISE);
-    else if(strcmp("return", tokenizer->currentString.str) == 0) add_token(tokenizer, TOK_RETURN);
-    else if(strcmp("or", tokenizer->currentString.str) == 0) add_token(tokenizer, TOK_OR);
-    else if(strcmp("yield", tokenizer->currentString.str) == 0) add_token(tokenizer, TOK_YIELD);
-    else if(strcmp("with", tokenizer->currentString.str) == 0) add_token(tokenizer, TOK_WITH);
-    else if(strcmp("while", tokenizer->currentString.str) == 0) add_token(tokenizer, TOK_WHILE);
-    else if(strcmp("try", tokenizer->currentString.str) == 0) add_token(tokenizer, TOK_TRY);
+    if(strcmp("False", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_FALSE);
+    else if(strcmp("True", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_TRUE);
+    else if(strcmp("None", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_NONE);
+    else if(strcmp("and", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_AND);
+    else if(strcmp("as", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_AS);
+    else if(strcmp("assert", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_ASSERT);
+    else if(strcmp("break", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_BREAK);
+    else if(strcmp("class", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_CLASS);
+    else if(strcmp("continue", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_CONTINUE);
+    else if(strcmp("def", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_DEF);
+    else if(strcmp("del", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_DEL);
+    else if(strcmp("elif", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_ELIF);
+    else if(strcmp("else", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_ELSE);
+    else if(strcmp("except", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_EXCEPT);
+    else if(strcmp("finally", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_FINALLY);
+    else if(strcmp("for", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_FOR);
+    else if(strcmp("from", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_FROM);
+    else if(strcmp("global", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_GLOBAL);
+    else if(strcmp("import", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_IMPORT);
+    else if(strcmp("if", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_IF);
+    else if(strcmp("is", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_IS);
+    else if(strcmp("lambda", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_LAMBDA);
+    else if(strcmp("in", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_IN);
+    else if(strcmp("nonlocal", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_NONLOCAL);
+    else if(strcmp("not", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_NOT);
+    else if(strcmp("pass", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_PASS);
+    else if(strcmp("raise", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_RAISE);
+    else if(strcmp("return", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_RETURN);
+    else if(strcmp("or", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_OR);
+    else if(strcmp("yield", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_YIELD);
+    else if(strcmp("with", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_WITH);
+    else if(strcmp("while", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_WHILE);
+    else if(strcmp("try", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_TRY);
     //checking if we have an integer or a float 
-    else if(isdigit(tokenizer->currentString.str[0])){
+    else if(isdigit(tokenizer->currentString->str[0])){
         //if it contains a period it is likely a float 
-        if(strchr(tokenizer->currentString.str, '.') != NULL){
-            double d = strtod(tokenizer->currentString.str, NULL);
+        if(strchr(tokenizer->currentString->str, '.') != NULL){
+            double d = strtod(tokenizer->currentString->str, NULL);
             //verify that it is actually a float 
-            if(fabs(d - 0.0) < 0.00001 && strcmp(tokenizer->currentString.str, "0.0") != 0){
+            if(fabs(d - 0.0) < 0.00001 && strcmp(tokenizer->currentString->str, "0.0") != 0){
                 fprintf(stderr, "Invalid float on line %d\n", tokenizer->line);
                 exit(2);
             } else{
@@ -138,8 +133,8 @@ static void check_misc_string(Tokenizer *tokenizer){
             }
         } else{
             //if not a string check if its an integer 
-            int integer = atoi(tokenizer->currentString.str);
-            if((integer == 0 && tokenizer->currentString.size == 1 && tokenizer->currentString.str[0] == '0') || integer != 0){
+            int integer = atoi(tokenizer->currentString->str);
+            if((integer == 0 && tokenizer->currentString->size == 1 && tokenizer->currentString->str[0] == '0') || integer != 0){
                 add_token(tokenizer, TOK_INTEGER);
             } else {
                 fprintf(stderr, "Invalid int on line %d\n", tokenizer->line);
@@ -150,12 +145,12 @@ static void check_misc_string(Tokenizer *tokenizer){
     else{
         add_token(tokenizer, TOK_IDENTIFIER);
     } 
-    string_clear(&tokenizer->currentString);
+    string_clear(tokenizer->currentString);
 }
 
 
 static void add_token_check_string(Tokenizer *tokenizer, TokenType type){
-    if(tokenizer->currentString.size != 0){
+    if(tokenizer->currentString->size != 0){
         check_misc_string(tokenizer);
     }
     add_token(tokenizer, type);
@@ -164,13 +159,13 @@ static void add_token_check_string(Tokenizer *tokenizer, TokenType type){
 
 
 static void create_string_token(Tokenizer *tokenizer){
-    if(tokenizer->currentString.size != 0){
+    if(tokenizer->currentString->size != 0){
         check_misc_string(tokenizer);
     }
     //consume quote char 
     next_char(tokenizer);
     while(tokenizer->currentChar != '\"'){
-        string_push(&tokenizer->currentString, tokenizer->currentChar);
+        string_push(&tokenizer->currentString,tokenizer->currentChar);
         next_char(tokenizer);
 
         if(tokenizer->currentChar == EOF){
@@ -180,7 +175,7 @@ static void create_string_token(Tokenizer *tokenizer){
     }
 
     add_token(tokenizer, TOK_STRING);
-    string_clear(&tokenizer->currentString);
+    string_clear(tokenizer->currentString);
 }
 
 //converts four spaces to a tab 
@@ -230,7 +225,7 @@ ArrayList tokenize_file(File* file){
                 if(prev_char(&tokenizer) == '\n'){
                     spaces_to_tab(&tokenizer);
                 } 
-                if(tokenizer.currentString.size != 0) {
+                if(tokenizer.currentString->size != 0) {
                         check_misc_string(&tokenizer);
                 }
                 break;
@@ -238,7 +233,7 @@ ArrayList tokenize_file(File* file){
                 check_assign(tokenizer,TOK_EQUAL, TOK_ASSIGN); 
                 break;  
             case '\n':
-                if(tokenizer.currentString.size != 0) check_misc_string(&tokenizer);
+                if(tokenizer.currentString->size != 0) check_misc_string(&tokenizer);
                 tokenizer.line++;
                 if(get_prev_token(&tokenizer) == TOK_NEW_LINE) break; //ignore multiple new lines
                 add_token(&tokenizer, TOK_NEW_LINE);
@@ -358,7 +353,7 @@ ArrayList tokenize_file(File* file){
                       add_token_check_string(&tokenizer,TOK_RIGHT_BRACE);
                       break;
             case '#':
-                      if(tokenizer.currentString.size != 0) check_misc_string(&tokenizer);
+                      if(tokenizer.currentString->size != 0) check_misc_string(&tokenizer);
                       //comments go to the end of a line 
                       file_end_line(tokenizer.file);
                       tokenizer.line++;
@@ -405,7 +400,6 @@ ArrayList tokenize_file(File* file){
     }
 END:
      return delete_tokenizer(&tokenizer);
-
 }
 
 
