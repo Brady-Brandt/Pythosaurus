@@ -125,6 +125,7 @@ const char* get_literal_type(LiteralExpr* expr){
 }
 
 const char* get_token_type(TokenType t){
+    if(t < 0 || t > 87) return token_strings[87];
     return token_strings[t];
 }
 
@@ -133,7 +134,7 @@ const char* get_token_type(TokenType t){
 #if DEBUG 
 void print_token(Token token){
     if(token.type == TOK_STRING || token.type == TOK_IDENTIFIER || token.type == TOK_INTEGER || token.type == TOK_FLOAT){
-        printf("%s -> %s\n", token_strings[token.type], token.literal.str);
+        printf("%s -> %s\n", token_strings[token.type], token.literal->str);
     } else if(token.type < 33){
         printf("Keyword: %s\n", token_strings[token.type]);
     } 
@@ -160,7 +161,7 @@ void print_expr(Expr* expression){
 
             switch (lexpr->litType) {
             case LIT_STRING:
-                printf("%s", lexpr->string.str);
+                printf("%s", lexpr->string->str);
                 break;
             case LIT_FLOAT: 
                 printf("%g", lexpr->_float);
@@ -168,8 +169,11 @@ void print_expr(Expr* expression){
             case LIT_INTEGER: 
                 printf("%ld", lexpr->integer);
                 break;
+            case LIT_BOOL:
+                printf("%s", (lexpr->boolean) ? "True" : "False");
+                break;
             case LIT_IDENTIFIER:
-                printf("%s", lexpr->identifier.str);
+                printf("%s", lexpr->identifier->str);
                 break;
             default:
                 printf("None");
@@ -208,7 +212,7 @@ void print_expr(Expr* expression){
 
         case EXPR_FUNC: {
             FuncExpr* fexpr = (FuncExpr*)expression;
-            printf("Func: %s ", fexpr->name.str);
+            printf("Func: %s ", fexpr->name->str);
             if(fexpr->args.data == NULL){
                 printf("No args");
             } 
@@ -237,14 +241,14 @@ void print_statement(Statement* statement){
     switch (statement->type) {
         case STMT_ASSIGN: {
             AssignStmt* s = (AssignStmt*)(statement);
-            printf("Var %s = ", s->identifier.str);
+            printf("Var %s = ", s->identifier->str);
             print_expr(s->value);
             printf("\n");
             break;
         }
         case STMT_ASSIGN_OP: {
             AssignOpStmt* s = (AssignOpStmt*)(statement);
-            printf("Var %s ", s->identifier.str);
+            printf("Var %s ", s->identifier->str);
             printf("%s ",get_token_type(s->op));
             print_expr(s->value);
             printf("\n");
@@ -297,7 +301,7 @@ void print_statement(Statement* statement){
         }
         case STMT_FUNC: {
             FunctionStmt* stmt = (FunctionStmt*)(statement);
-            printf("FunctionDef: %s, Arg Count: %d\n", stmt->identifier.str, stmt->parameters); 
+            printf("FunctionDef: %s, Arg Count: %d\n", stmt->identifier->str, stmt->parameters.size); 
             print_statement(stmt->body);
             break;
         } 
@@ -313,7 +317,7 @@ void print_statement(Statement* statement){
             AssertStmt* stmt = (AssertStmt*)(statement);
             printf("Assert: ");
             print_expr(stmt->condition);
-            if(stmt->msg.size != 0) printf(" %s", stmt->msg.str);
+            if(stmt->msg != NULL) printf(" %s", stmt->msg->str);
             printf("\n");
             break;
         }
