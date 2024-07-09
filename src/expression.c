@@ -302,7 +302,7 @@ void delete_expr_tree(Expr* expression){
             break;
         } 
         case EXPR_GROUPING:
-            delete_expr_tree(expression);
+            delete_expr_tree(expression->expr);
             break;
 
         case EXPR_UNARY:{
