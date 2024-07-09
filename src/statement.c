@@ -416,7 +416,8 @@ void delete_statement(Statement* statement){
         case STMT_FUNC: {
             FunctionStmt* s = (FunctionStmt*)(statement);
             delete_statement(s->body);
-            string_delete(s->identifier);
+            string_delete(s->identifier); 
+            array_list_delete(s->parameters);
             free(s);
             break;
         } 
