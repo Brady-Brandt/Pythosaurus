@@ -22,6 +22,15 @@ void* allocator_peek(Allocator *alloc);
 
 void allocator_clear(Allocator *alloc);
 
+static inline long allocator_get_offset(Allocator *alloc){
+    return alloc->offset;
+}
+
+
+static inline void allocator_set_offset(Allocator *alloc, long offset){
+    alloc->offset = offset;
+}
+
 #define allocator_add(alloc_ptr, item, type) \
     do { \
         type* val = _allocator_add(alloc_ptr); \
