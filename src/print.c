@@ -106,15 +106,15 @@ static const char* token_strings[] = {
 
 static const char* literal_strings[] =  
 { 
-    "BOOL",
-    "INTEGER", 
-    "FLOAT", 
-    "STRING",
-    "IDENTIFIER",
-    "CLASS", 
-    "LIST", 
-    "DICT",
-    "NONE",
+    "Bool",
+    "Integer", 
+    "Float", 
+    "String",
+    "Identifier",
+    "Class", 
+    "List", 
+    "Dict",
+    "None",
     "UNINIT"
 };
 

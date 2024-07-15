@@ -45,6 +45,9 @@ typedef enum {
     LIT_FLOAT, 
     LIT_STRING,
     LIT_IDENTIFIER,
+    LIT_CLASS,
+    LIT_LIST,
+    LIT_DICT,
     LIT_NONE,
     LIT_UNINIT,
 } LiteralType;
