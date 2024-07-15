@@ -158,8 +158,16 @@ void create_native_func(HashMap *map, const char* name, int argCount, NativeFunc
 }
 
 void create_functions(Interpretor* interpret){
-    interpret->functions = hash_map_create(10, delete_funcions);
+    interpret->functions = hash_map_create(30, delete_funcions);
     create_native_func(interpret->functions, "print", 1, print);
+    create_native_func(interpret->functions, "abs", 1, _abs);
+    create_native_func(interpret->functions, "bin", 1, bin);
+    create_native_func(interpret->functions, "bool", 1, _bool);
+    create_native_func(interpret->functions, "float", 1, _float);
+    create_native_func(interpret->functions, "hex", 1, hex);
+    create_native_func(interpret->functions, "input", 1, input);
+    create_native_func(interpret->functions, "int", 1, _int);
+    create_native_func(interpret->functions, "len", 1, len);
 }
 
 void interpretor_return(Interpretor* interpret, LiteralExpr* value){
@@ -228,6 +236,7 @@ void interpt_stmts(File* file, ArrayList stmts){
 
     for(int i = 0; i < stmts.size; i++){
         Statement* current_stmt = array_list_get(stmts, Statement*, i);
+        interpret.currentStmt = current_stmt;
         evaluate_statement(&interpret, current_stmt);
     }
 
