@@ -66,6 +66,32 @@ void string_delete(String* s){
 }
 
 
+void string_append_str(String** s, const char* str, uint32_t str_size){
+    String* string = *s;
+    if(string->size + str_size == string->capacity - 1){
+        string_realloc(s);
+    }
+    string = *s;
+    strcat(string->str, str);
+    string->size++;
+}
+
+
+char string_pop(String* s){
+    if(s->size == 0) return 0;
+
+    char res = s->str[--s->size];
+    s->str[s->size] = '\0';
+    return res;
+}
+
+
+
+char string_get_char(String* s, uint32_t index){
+    if(index > s->size - 1) return 0;
+    return s->str[index];
+}
+
 
 
 String* string_concat(String* s1, String* s2){
@@ -90,5 +116,4 @@ String* string_multiply(String* s1, uint32_t times){
     result->str[size] = '\0';
     return result;
 }
-
 
