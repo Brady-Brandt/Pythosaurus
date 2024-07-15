@@ -1,3 +1,5 @@
+#include <stdio.h>
+#include <errno.h>
 #include <stdlib.h>
 
 #include "expression.h"
@@ -62,6 +64,7 @@ static Expr* primary(Parser *p){
        return create_grouping_expr(e);
     }
     if(p->currentToken.type == TOK_NONE){
+        parser_next_token(p);
         return (Expr*)None;
     }
 
@@ -80,13 +83,21 @@ static Expr* primary(Parser *p){
 
         case TOK_INTEGER:
             result->litType = LIT_INTEGER;
+            errno = 0;
             result->integer = strtol(p->currentToken.literal->str, NULL, 10);
+            if(errno == ERANGE){
+                parser_new_error(p, "Invalid integer: %s\n", p->currentToken.literal->str);
+            }
             string_delete(p->currentToken.literal);
             break;
         
         case TOK_FLOAT:
             result->litType = LIT_FLOAT;
+            errno = 0;
             result->_float = strtod(p->currentToken.literal->str, NULL);
+            if(errno == ERANGE){
+                parser_new_error(p, "Invalid float: %s\n", p->currentToken.literal->str);
+            }
             string_delete(p->currentToken.literal);
             break;
 
