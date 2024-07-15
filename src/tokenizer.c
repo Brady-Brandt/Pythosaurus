@@ -5,7 +5,6 @@
 
 
 #include <ctype.h>
-#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -82,9 +81,29 @@ static void add_token(Tokenizer *tokenizer, TokenType type){
 
 
 /** 
- * Determing if the string is a keyword, float, int, or identifier 
+ * Determine if the string is a keyword or identifier 
  */
-static void check_misc_string(Tokenizer *tokenizer){
+static void add_id_or_kw(Tokenizer *tokenizer){
+    string_push(&tokenizer->currentString, tokenizer->currentChar);
+    bool is_id = false;
+    while(true){
+        char next = peek_char(tokenizer);
+        if(!isalnum(next) && next != '_'){
+            break;
+        }
+        char c = next_char(tokenizer);
+        string_push(&tokenizer->currentString, c);
+        //keywords only contain letters 
+        //so if it doesn't have letters it must be an identifier
+        if(!isalpha(c)) {
+            is_id = true;
+        }
+    }
+
+    if(is_id){
+        goto identifier;
+    }
+
     //pretty much just as fast as using a hashmap 
     if(strcmp("False", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_FALSE);
     else if(strcmp("True", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_TRUE);
@@ -118,50 +137,54 @@ static void check_misc_string(Tokenizer *tokenizer){
     else if(strcmp("yield", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_YIELD);
     else if(strcmp("with", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_WITH);
     else if(strcmp("while", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_WHILE);
-    else if(strcmp("try", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_TRY);
-    //checking if we have an integer or a float 
-    else if(isdigit(tokenizer->currentString->str[0])){
-        //if it contains a period it is likely a float 
-        if(strchr(tokenizer->currentString->str, '.') != NULL){
-            double d = strtod(tokenizer->currentString->str, NULL);
-            //verify that it is actually a float 
-            if(fabs(d - 0.0) < 0.00001 && strcmp(tokenizer->currentString->str, "0.0") != 0){
-                fprintf(stderr, "Invalid float on line %d\n", tokenizer->line);
-                exit(2);
-            } else{
-                add_token(tokenizer, TOK_FLOAT);
-            }
-        } else{
-            //if not a string check if its an integer 
-            int integer = atoi(tokenizer->currentString->str);
-            if((integer == 0 && tokenizer->currentString->size == 1 && tokenizer->currentString->str[0] == '0') || integer != 0){
-                add_token(tokenizer, TOK_INTEGER);
-            } else {
-                fprintf(stderr, "Invalid int on line %d\n", tokenizer->line);
-                exit(2);
-            }
-        } 
-    }    
+    else if(strcmp("try", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_TRY);    
     else{
-        add_token(tokenizer, TOK_IDENTIFIER);
-    } 
+        identifier:
+            add_token(tokenizer, TOK_IDENTIFIER);
+    }
     string_clear(tokenizer->currentString);
 }
 
 
-static void add_token_check_string(Tokenizer *tokenizer, TokenType type){
-    if(tokenizer->currentString->size != 0){
-        check_misc_string(tokenizer);
+static void add_number(Tokenizer *tokenizer){
+    string_push(&tokenizer->currentString, tokenizer->currentChar);
+    bool is_float = false;
+    bool is_valid = true;
+    while(true){
+        char next = peek_char(tokenizer);
+        if(!isalnum(next) && next != '_' && next != '.'){
+            break;
+        }
+        char c = next_char(tokenizer);
+        if(isdigit(c)){
+            string_push(&tokenizer->currentString, c);
+        } else if(c == '.'){
+            if(is_float) is_valid = false;
+            is_float = true; 
+            string_push(&tokenizer->currentString, c);
+        }
+        else if(c == '_'){
+
+        } else{
+            is_valid = false;
+            string_push(&tokenizer->currentString, c);
+            break;
+        }  
     }
-    add_token(tokenizer, type);
+    if(!is_valid){
+        fprintf(stderr, "Invalid number on line %d: %s", tokenizer->line, tokenizer->currentString->str);
+        exit(EXIT_FAILURE);
+    }
+    if(is_float){
+        add_token(tokenizer, TOK_FLOAT);
+    } else{
+        add_token(tokenizer, TOK_INTEGER);
+    }
 }
+    
 
 
-
-static void create_string_token(Tokenizer *tokenizer){
-    if(tokenizer->currentString->size != 0){
-        check_misc_string(tokenizer);
-    }
+static void create_string_token(Tokenizer *tokenizer){ 
     //consume quote char 
     next_char(tokenizer);
     while(tokenizer->currentChar != '\"'){
@@ -175,7 +198,6 @@ static void create_string_token(Tokenizer *tokenizer){
     }
 
     add_token(tokenizer, TOK_STRING);
-    string_clear(tokenizer->currentString);
 }
 
 //converts four spaces to a tab 
@@ -204,10 +226,10 @@ static void spaces_to_tab(Tokenizer *tokenizer){
 //+= or if its is an = it becomes ==  
 #define check_assign(tokenizer, assign_tok, normal_tok) \
     if(peek_char(&tokenizer) == '='){ \
-        add_token_check_string(&tokenizer, assign_tok); \
+        add_token(&tokenizer, assign_tok); \
         next_char(&tokenizer); \
     } else { \
-        add_token_check_string(&tokenizer, normal_tok); \
+        add_token(&tokenizer, normal_tok); \
     } \
 
 
@@ -224,16 +246,12 @@ ArrayList tokenize_file(File* file){
             case ' ':
                 if(prev_char(&tokenizer) == '\n'){
                     spaces_to_tab(&tokenizer);
-                } 
-                if(tokenizer.currentString->size != 0) {
-                        check_misc_string(&tokenizer);
-                }
+                }  
                 break;
             case '=':
                 check_assign(tokenizer,TOK_EQUAL, TOK_ASSIGN); 
                 break;  
             case '\n':
-                if(tokenizer.currentString->size != 0) check_misc_string(&tokenizer);
                 tokenizer.line++;
                 if(get_prev_token(&tokenizer) == TOK_NEW_LINE) break; //ignore multiple new lines
                 add_token(&tokenizer, TOK_NEW_LINE);
@@ -243,19 +261,19 @@ ArrayList tokenize_file(File* file){
                     fprintf(stderr, "Invalid block\n");
                     exit(1);
                 }
-                add_token_check_string(&tokenizer,TOK_TAB);
+                add_token(&tokenizer,TOK_TAB);
                 break;
             case '(':
-                add_token_check_string(&tokenizer,TOK_LEFT_PAREN);
+                add_token(&tokenizer,TOK_LEFT_PAREN);
                 break; 
             case ')':
-                add_token_check_string(&tokenizer,TOK_RIGHT_PAREN);
+                add_token(&tokenizer,TOK_RIGHT_PAREN);
                 break; 
             case ':':
-                add_token_check_string(&tokenizer,TOK_COLON);
+                add_token(&tokenizer,TOK_COLON);
                 break;
             case ',':
-                add_token_check_string(&tokenizer, TOK_COMMA);
+                add_token(&tokenizer, TOK_COMMA);
                 break;
             case '+':
                 check_assign(tokenizer,TOK_ADD_ASSIGN, TOK_ADD); 
@@ -270,17 +288,17 @@ ArrayList tokenize_file(File* file){
                                   check_assign(tokenizer,TOK_EXP_ASSIGN, TOK_EXP);
                                   break;                                  break;
                               case '=':
-                                  add_token_check_string(&tokenizer,TOK_MUL_ASSIGN);
+                                  add_token(&tokenizer,TOK_MUL_ASSIGN);
                                   next_char(&tokenizer);
                                   break;
                               default:
-                                  add_token_check_string(&tokenizer,TOK_MUL);
+                                  add_token(&tokenizer,TOK_MUL);
                           }
                           break;
                       }
             case '!': {
                           if(next_char(&tokenizer) == '='){
-                              add_token_check_string(&tokenizer,TOK_NOT_EQUAL);
+                              add_token(&tokenizer,TOK_NOT_EQUAL);
                           } else {
                               add_token(&tokenizer, TOK_UNKOWN);
                           }
@@ -293,11 +311,11 @@ ArrayList tokenize_file(File* file){
                                   check_assign(tokenizer,TOK_FLOOR_DIV_ASSIGN, TOK_FLOOR_DIV);
                                   break;
                               case '=':
-                                  add_token_check_string(&tokenizer,TOK_DIV_ASSIGN);
+                                  add_token(&tokenizer,TOK_DIV_ASSIGN);
                                   next_char(&tokenizer);
                                   break;
                               default:
-                                  add_token_check_string(&tokenizer,TOK_DIV);
+                                  add_token(&tokenizer,TOK_DIV);
                           }
                           break;
                       }
@@ -307,7 +325,7 @@ ArrayList tokenize_file(File* file){
             case '<': {
                           switch (peek_char(&tokenizer)) {
                               case '=':
-                                  add_token_check_string(&tokenizer,TOK_LESS_EQUAL);
+                                  add_token(&tokenizer,TOK_LESS_EQUAL);
                                   next_char(&tokenizer);
                                   break;
                               case '<':
@@ -315,14 +333,14 @@ ArrayList tokenize_file(File* file){
                                   check_assign(tokenizer,TOK_LEFT_SHIFT_ASSIGN, TOK_LEFT_SHIFT);
                                   break;
                               default:
-                                  add_token_check_string(&tokenizer,TOK_LESS_THAN);
+                                  add_token(&tokenizer,TOK_LESS_THAN);
                           }
                           break;
                       }
             case '>': {
                           switch (peek_char(&tokenizer)) {
                               case '=':
-                                  add_token_check_string(&tokenizer,TOK_GREATER_EQUAL);
+                                  add_token(&tokenizer,TOK_GREATER_EQUAL);
                                   next_char(&tokenizer);
                                   break;
                               case '>':
@@ -330,7 +348,7 @@ ArrayList tokenize_file(File* file){
                                   check_assign(tokenizer,TOK_RIGHT_SHIFT_ASSIGN, TOK_RIGHT_SHIFT);
                                   break;
                               default:
-                                  add_token_check_string(&tokenizer,TOK_GREATER_THAN); 
+                                  add_token(&tokenizer,TOK_GREATER_THAN); 
                           }
                           break;
                       }
@@ -338,22 +356,21 @@ ArrayList tokenize_file(File* file){
                       create_string_token(&tokenizer);
                       break;
             case '\'':
-                      add_token_check_string(&tokenizer,TOK_SQUOTE);
+                      add_token(&tokenizer,TOK_SQUOTE);
                       break;
             case '[': 
-                      add_token_check_string(&tokenizer,TOK_LEFT_BRACKET);
+                      add_token(&tokenizer,TOK_LEFT_BRACKET);
                       break;
             case ']': 
-                      add_token_check_string(&tokenizer,TOK_RIGHT_BRACKET);
+                      add_token(&tokenizer,TOK_RIGHT_BRACKET);
                       break;
             case '{':   
-                      add_token_check_string(&tokenizer,TOK_LEFT_BRACE);
+                      add_token(&tokenizer,TOK_LEFT_BRACE);
                       break;
             case '}':
-                      add_token_check_string(&tokenizer,TOK_RIGHT_BRACE);
+                      add_token(&tokenizer,TOK_RIGHT_BRACE);
                       break;
             case '#':
-                      if(tokenizer.currentString->size != 0) check_misc_string(&tokenizer);
                       //comments go to the end of a line 
                       file_end_line(tokenizer.file);
                       tokenizer.line++;
@@ -361,7 +378,8 @@ ArrayList tokenize_file(File* file){
                       add_token(&tokenizer, TOK_NEW_LINE);
                       break;
             case '.':
-                      add_token_check_string(&tokenizer,TOK_DOT);
+                      if(tokenizer.currentString->str)
+                      add_token(&tokenizer,TOK_DOT);
                       break;
             case '&':
                       check_assign(tokenizer,TOK_BIT_AND_ASSIGN, TOK_BIT_AND);
@@ -373,21 +391,24 @@ ArrayList tokenize_file(File* file){
                       check_assign(tokenizer,TOK_BIT_XOR_ASSIGN, TOK_BIT_XOR);
                       break;
             case '~':
-                      add_token_check_string(&tokenizer,TOK_BIT_NOT);
+                      add_token(&tokenizer,TOK_BIT_NOT);
                       break;
 
                       //new lines are typically used to end statements but semicolons can also be used 
                       //so we just convert semicolons to new lines 
             case ';':
-                      add_token_check_string(&tokenizer,TOK_NEW_LINE);
+                      add_token(&tokenizer,TOK_NEW_LINE);
                       break;
             case '@':
-                      printf("Decorators are not supported\n");
+                      add_token(&tokenizer, TOK_AT);
                       break;
             default:
-                if(isalnum(tokenizer.currentChar) || tokenizer.currentChar == '_'){
-                    string_push(&tokenizer.currentString, tokenizer.currentChar);
+                if(isdigit(tokenizer.currentChar) || tokenizer.currentChar == '.'){
+                    add_number(&tokenizer);
                 }
+                else if(isalpha(tokenizer.currentChar) || tokenizer.currentChar == '_'){
+                    add_id_or_kw(&tokenizer);
+                } 
                 else if(tokenizer.currentChar == EOF){
                     add_token(&tokenizer, TOK_EOF);
                     goto END;
