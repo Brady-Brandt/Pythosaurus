@@ -56,6 +56,8 @@ typedef enum {
     STMT_ASSERT,
     STMT_RETURN, 
     STMT_PASS,
+    STMT_BREAK,
+    STMT_CONTINUE, 
 }StatementType;
 
 typedef struct {

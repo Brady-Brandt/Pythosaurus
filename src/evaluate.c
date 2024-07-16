@@ -11,6 +11,7 @@
 #include "tokenizer.h"
 
 
+#include <setjmp.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -234,6 +235,13 @@ LiteralExpr* evaluate_expression(Interpretor *interpret, Expr* expression){
     } 
 }
 
+#define BREAK 1
+#define CONTINUE 2
+
+//used to implement break and continue 
+static jmp_buf loop_buffer;
+static bool in_loop = false;
+
 void evaluate_statement(Interpretor *interpret, Statement* statement){
     switch (statement->type) {
         case STMT_EXPR:{ 
@@ -265,10 +273,27 @@ void evaluate_statement(Interpretor *interpret, Statement* statement){
         case STMT_WHILE:{
             WhileStmt* wstmt = (WhileStmt*)(statement);
             long start = interpretor_save_expression(interpret);
+
             while(as_bool(interpret,evaluate_expression(interpret, wstmt->condition))){
                 interpretor_restore_expression(interpret, start);
-                evaluate_statement(interpret, wstmt->_while);
+                BlockStmt* while_block = (BlockStmt*)wstmt->_while; 
+
+                CONTINUE_LOOP:
+                for(int i = 0; i < while_block->statements.size; i++){
+                    Statement* current_statement = array_list_get(while_block->statements, Statement*, i);
+                    interpret->currentStmt = current_statement;
+                    in_loop = true;
+                    switch (setjmp(loop_buffer)) {
+                        case CONTINUE:
+                            goto CONTINUE_LOOP;
+                        case BREAK:
+                            goto END_LOOP; 
+                    }
+                    evaluate_statement(interpret, current_statement);
+                }
             }
+            END_LOOP:
+            in_loop = false;
             interpretor_restore_expression(interpret, start);
             break;
         }
@@ -331,6 +356,18 @@ void evaluate_statement(Interpretor *interpret, Statement* statement){
             interpretor_return(interpret, res);
             break;
         }
+        case STMT_BREAK: {
+            if(!in_loop) interpretor_throw_error(interpret, "Cannot use break outside of loop");
+            longjmp(loop_buffer, BREAK);
+            break;
+        }
+        case STMT_CONTINUE: {
+            if(!in_loop) interpretor_throw_error(interpret, "Cannot use continue outside of loop");
+            longjmp(loop_buffer, CONTINUE);
+            break;
+        }
+        case STMT_PASS:
+            return;
         default:
             printf("Not implemented\n");
     }

@@ -324,6 +324,13 @@ void print_statement(Statement* statement){
         case STMT_PASS:
             printf("Pass\n");
             break;
+        case STMT_BREAK:
+            printf("Break\n");
+            break;
+        case STMT_CONTINUE:
+            printf("Continue\n");
+            break;
+
         default:
             return; 
     }

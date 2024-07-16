@@ -119,12 +119,12 @@ static Statement* create_return_stmt(uint32_t line, Expr* value){
     return (Statement*)result;
 }
 
-static Statement* create_pass_stmt(uint32_t line){
+static Statement* create_stmt(uint32_t line, StatementType type){
     Statement* result = malloc(sizeof(Statement));
     if(result == NULL) return NULL;
-    result->type = STMT_PASS;
+    result->type = type;
     result->line = line;
-    result = NULL; 
+    result->stmt = NULL; 
     return result;
 }
 
@@ -167,8 +167,8 @@ static Statement* assign_statement(Parser* p){
             return stmt; 
         }
         default:{
-            Expr* value = expression(p);
             uint32_t line = p->currentToken.line;
+            Expr* value = expression(p);
             parser_expect_token(p, TOK_NEW_LINE);
             return create_expr_stmt(line, value);
         } 
@@ -324,7 +324,21 @@ static Statement* pass_statement(Parser *p){
     uint32_t line = p->currentToken.line;
     parser_consume_verified_token(p, TOK_PASS);
     parser_expect_token(p, TOK_NEW_LINE);
-    return create_pass_stmt(line);
+    return create_stmt(line, STMT_PASS);
+}
+
+static Statement* break_statement(Parser *p){
+    uint32_t line = p->currentToken.line;
+    parser_consume_verified_token(p, TOK_BREAK);
+    parser_expect_token(p, TOK_NEW_LINE);
+    return create_stmt(line, STMT_BREAK);
+}
+
+static Statement* continue_statement(Parser *p){
+    uint32_t line = p->currentToken.line;
+    parser_consume_verified_token(p, TOK_CONTINUE);
+    parser_expect_token(p, TOK_NEW_LINE);
+    return create_stmt(line, STMT_CONTINUE);
 }
 
 
@@ -345,6 +359,10 @@ Statement* statement(Parser *p){
             return return_statement(p);
         case TOK_PASS:
             return pass_statement(p);
+        case TOK_BREAK:
+            return break_statement(p);
+        case TOK_CONTINUE:
+            return continue_statement(p);
         case TOK_EOF:
             return NULL;
         default:
@@ -427,6 +445,9 @@ void delete_statement(Statement* statement){
             break;
         }
         case STMT_PASS:
+        case STMT_BREAK:
+        case STMT_CONTINUE:
+            free(statement);
             break;
         default:
             return; 
