@@ -368,6 +368,33 @@ void evaluate_statement(Interpretor *interpret, Statement* statement){
         }
         case STMT_PASS:
             return;
+        case STMT_DEL: {
+            //TODO: once we add dicts and lists we need to support deleting indices/entries 
+            GlobalDelStmt* gdstmt = (GlobalDelStmt*)(statement);
+            for(int i = 0; i < gdstmt->values.size; i++){
+                Expr* temp = array_list_get(gdstmt->values, Expr*, i);
+                if(temp->type == EXPR_LITERAL && ((LiteralExpr*)temp)->litType == LIT_IDENTIFIER){
+                    LiteralExpr* val = (LiteralExpr*)temp;
+                    interpretor_del_value(interpret, val); 
+                } else{
+                    interpretor_throw_error(interpret, "Cannot delete Value");
+                }
+            } 
+            break;
+        }
+        case STMT_GLOBAL: {
+            GlobalDelStmt* gdstmt = (GlobalDelStmt*)(statement);
+            for(int i = 0; i < gdstmt->values.size; i++){
+                Expr* temp = array_list_get(gdstmt->values, Expr*, i);
+                if(temp->type == EXPR_LITERAL && ((LiteralExpr*)temp)->litType == LIT_IDENTIFIER){
+                    LiteralExpr* val = (LiteralExpr*)temp;
+                    interpretor_global_var(interpret, val->identifier); 
+                } else{
+                    interpretor_throw_error(interpret, "Invalid variable");
+                }
+            }
+            break;
+        }
         default:
             printf("Not implemented\n");
     }

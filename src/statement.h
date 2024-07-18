@@ -36,14 +36,6 @@ stmt = FunctionDef(identifier name, arguments args,
           | Pass | Break | Continue
 */
 
-typedef enum {
-    BLOCK_NONE, 
-    BLOCK_CONDITIONAL, 
-    BLOCK_LOOP,
-    BLOCK_FUNCTION, 
-    BLOCK_CLASS, 
-} BlockType;
-
 
 typedef enum {
     STMT_ASSIGN,
@@ -57,7 +49,9 @@ typedef enum {
     STMT_RETURN, 
     STMT_PASS,
     STMT_BREAK,
-    STMT_CONTINUE, 
+    STMT_CONTINUE,
+    STMT_DEL,
+    STMT_GLOBAL,
 }StatementType;
 
 typedef struct {
@@ -92,7 +86,6 @@ typedef struct {
 typedef struct {
     StatementType type;
     uint32_t line;
-    BlockType BlockType;
     ArrayList statements;
 } BlockStmt;
 
@@ -145,6 +138,16 @@ typedef struct {
     uint32_t line;
     Expr* value;
 } ReturnStmt;
+
+
+//combine the two into one struct since they are identical 
+typedef struct {
+    StatementType type;
+    uint32_t line;
+    ArrayList values;
+} GlobalDelStmt;
+
+
 
 
 Statement* statement(Parser *p);

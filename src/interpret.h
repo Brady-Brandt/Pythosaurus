@@ -48,6 +48,11 @@ void interpretor_assign_var(Interpretor *interpret, String* name, struct Literal
 void interpretor_get_var(Interpretor *interpret, String* name, struct LiteralExpr* result);
 
 
+void interpretor_global_var(Interpretor *interpret, String* name);
+
+void interpretor_del_value(Interpretor *interpret, LiteralExpr* val);
+
+
 static inline long interpretor_save_expression(Interpretor *interpret){
     return allocator_get_offset(&interpret->expressionAllocator);
 }

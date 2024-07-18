@@ -330,7 +330,16 @@ void print_statement(Statement* statement){
         case STMT_CONTINUE:
             printf("Continue\n");
             break;
-
+        case STMT_DEL:
+        case STMT_GLOBAL: {
+            GlobalDelStmt* s = (GlobalDelStmt*)statement;
+            printf("%s ", (s->type == STMT_GLOBAL) ? "Global" : "Del");
+            for(int i = 0; i < s->values.size; i++){
+                LiteralExpr* expr = array_list_get(s->values, LiteralExpr*, i);
+                print_expr((Expr*)expr);
+            }
+            break;
+        }
         default:
             return; 
     }

@@ -4,6 +4,7 @@
 #include "expression.h"
 #include "file.h"
 #include "hashmap.h"
+#include "print.h"
 #include "stack.h"
 #include "statement.h"
 #include "stringtype.h"
@@ -96,12 +97,60 @@ void interpretor_assign_var(Interpretor *interpret, String* name, struct Literal
 
 void interpretor_get_var(Interpretor *interpret, String* name, struct LiteralExpr* result){ 
     Scope* local_scope = stack_peek(interpret->stackFrames, Scope*);
-    void* value = hash_map_get_value(local_scope->variables, name->str);
-    if(value != NULL){
-        memcpy(result, (LiteralExpr*)value, sizeof(LiteralExpr));
+    LiteralExpr* value = hash_map_get_value(local_scope->variables, name->str);
+    if(value != NULL && value->litType != LIT_UNINIT){ 
+        memcpy(result, value, sizeof(LiteralExpr));
         return;
     } 
     interpretor_throw_error(interpret, "Variable %s not defined\n", name->str);
+}
+
+
+void interpretor_global_var(Interpretor *interpret, String* name){
+    Scope* local_scope = stack_peek(interpret->stackFrames, Scope*);
+    LiteralExpr* value = hash_map_get_value(local_scope->variables, name->str);
+    if(value != NULL){
+        interpretor_throw_error(interpret, "%s assigned before global declaration", name->str);
+    }
+
+    Scope* global_scope = array_list_get(interpret->stackFrames, Scope*, 0);
+    value = hash_map_get_value(global_scope->variables, name->str);
+
+    //if the variable doesn't exist, declare in the global scope 
+    if(value == NULL){
+        LiteralExpr entry = {0};
+        entry.litType = LIT_UNINIT;
+        allocator_add(&global_scope->alloc, entry, LiteralExpr);
+        LiteralExpr* result = allocator_peek(&global_scope->alloc);
+        //add the value to global scope
+        hash_map_add_entry(global_scope->variables, name->str, result);
+        //add the value to the local scope 
+        if(global_scope != local_scope) hash_map_add_entry(local_scope->variables, name->str, result);
+    } else{ 
+        //if the variable already exists in the local scope
+        //add it to the local scope 
+        hash_map_add_entry(local_scope->variables, name->str, value);
+    }    
+}
+
+void interpretor_del_value(Interpretor *interpret, LiteralExpr* val){
+    if(val->litType != LIT_IDENTIFIER){
+        interpretor_throw_error(interpret, "Cannot delete: %s", get_literal_type(val));
+    }
+    Scope* local_scope = stack_peek(interpret->stackFrames, Scope*);
+    Scope* global_scope = array_list_get(interpret->stackFrames, Scope*, 0);
+    LiteralExpr* value = hash_map_delete_entry(local_scope->variables, val->identifier->str);
+
+    if(local_scope != global_scope){
+        LiteralExpr* global_value = hash_map_get_value(global_scope->variables, val->identifier->str);
+        //checks if the variable was declared with the global keyword 
+        //it ensures the variable is deleted from the global scope as well as the local 
+        if(global_value != NULL && global_value == value){
+           hash_map_delete_entry(global_scope->variables, val->identifier->str); 
+        }
+    }
+
+    if(value == NULL) interpretor_throw_error(interpret, "%s not defined", val->identifier->str);
 }
 
 

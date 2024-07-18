@@ -128,6 +128,8 @@ static Statement* create_stmt(uint32_t line, StatementType type){
     return result;
 }
 
+//static Statement* 
+
 
 
 
@@ -342,6 +344,39 @@ static Statement* continue_statement(Parser *p){
 }
 
 
+//combine these two statements because parsing them is almost the exact same 
+static Statement* global_del_statement(Parser *p, StatementType stype){
+    uint32_t line = p->currentToken.line;
+    parser_next_token(p); //consume either the Global || Del keyword
+    ArrayList vars;
+    array_list_create_cap(vars, Expr*, 2);
+    bool inside_paren = false;
+    if(p->currentToken.type == TOK_LEFT_PAREN){
+        inside_paren = true;
+        parser_next_token(p);
+    }
+    do {
+        Expr* variable = expression(p);
+        array_list_append(vars, Expr*, variable);
+    }while (match(p, TOK_COMMA)); 
+
+    if(inside_paren) parser_expect_consume_token(p, TOK_RIGHT_PAREN);
+
+    if(vars.size == 0){
+        parser_new_error(p, "Expected at least one value");
+    }
+
+    parser_consume_token(p, TOK_NEW_LINE, "Missing new line");
+ 
+    GlobalDelStmt* result = malloc(sizeof(GlobalDelStmt));
+    if(result == NULL) return NULL;
+    result->line = line;
+    result->type = stype;
+    result->values = vars;
+    return (Statement*)result;
+}
+
+
 Statement* statement(Parser *p){
     parser_try_consume_token(p, TOK_NEW_LINE); 
     switch(p->currentToken.type){
@@ -363,6 +398,10 @@ Statement* statement(Parser *p){
             return break_statement(p);
         case TOK_CONTINUE:
             return continue_statement(p);
+        case TOK_DEL:
+            return global_del_statement(p, STMT_DEL);
+        case TOK_GLOBAL:
+            return global_del_statement(p, STMT_GLOBAL);
         case TOK_EOF:
             return NULL;
         default:
@@ -449,6 +488,16 @@ void delete_statement(Statement* statement){
         case STMT_CONTINUE:
             free(statement);
             break;
+        case STMT_GLOBAL:
+        case STMT_DEL: {
+            GlobalDelStmt* s = (GlobalDelStmt*)statement;
+            for(int i = 0; i < s->values.size; i++){
+                Expr* expr = array_list_get(s->values, Expr*, i);
+                delete_expr_tree(expr);
+            }
+            free(s);
+            break;
+        }
         default:
             return; 
     }
