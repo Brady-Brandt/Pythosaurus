@@ -11,7 +11,7 @@
 
 
 
-LiteralExpr _none = (LiteralExpr){EXPR_LITERAL, LIT_NONE};
+LiteralExpr __none_expr__ = (LiteralExpr){EXPR_LITERAL, LIT_NONE};
 
 
 static Expr* create_binary_expr(Expr* left, TokenType operator,Expr* right){
@@ -65,7 +65,7 @@ static Expr* primary(Parser *p){
     }
     if(p->currentToken.type == TOK_NONE){
         parser_next_token(p);
-        return (Expr*)None;
+        return (Expr*)None_Expr;
     }
 
     //it should be a literal expression here 
@@ -294,12 +294,16 @@ Expr* expression(Parser* p){
 void delete_expr_tree(Expr* expression){
     if(expression == NULL) return;
     switch (expression->type) {
-        case EXPR_LITERAL:
-            if(((LiteralExpr*)expression)->litType != LIT_NONE){
+        case EXPR_LITERAL: {
+            LiteralExpr* lexpr = (LiteralExpr*)expression;
+            if(lexpr->litType != LIT_NONE){
+                if(lexpr->litType == LIT_STRING || lexpr->litType == LIT_IDENTIFIER){
+                    string_delete(lexpr->string);
+                }
                 free(expression);
             }
             break;
-
+        }
         case EXPR_BINARY:{
             BinaryExpr* bexpr = (BinaryExpr*)expression;
             if(bexpr->left != NULL){
@@ -331,6 +335,8 @@ void delete_expr_tree(Expr* expression){
                 Expr* e = array_list_get(fexpr->args, Expr*, i);
                 delete_expr_tree(e);
             }
+
+            string_delete(fexpr->name);
             array_list_delete(fexpr->args);
             free(fexpr);
             break;

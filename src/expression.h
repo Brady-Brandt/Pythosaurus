@@ -84,9 +84,9 @@ typedef struct {
 } LiteralExpr;
 
 
-extern LiteralExpr _none;
+extern LiteralExpr __none_expr__;
 
-#define None (&_none)
+#define None_Expr (&__none_expr__)
 
 //represents a function call
 typedef struct {
