@@ -52,6 +52,7 @@ typedef enum {
     STMT_CONTINUE,
     STMT_DEL,
     STMT_GLOBAL,
+    STMT_CLASS,
 }StatementType;
 
 typedef struct {
@@ -147,6 +148,14 @@ typedef struct {
     ArrayList values;
 } GlobalDelStmt;
 
+
+typedef struct {
+    StatementType type;
+    uint32_t line;
+    String* name;
+    ArrayList superClasses; //type string  
+    Statement* body;
+} ClassStmt;
 
 
 

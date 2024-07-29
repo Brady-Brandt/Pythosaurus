@@ -128,7 +128,16 @@ static Statement* create_stmt(uint32_t line, StatementType type){
     return result;
 }
 
-//static Statement* 
+static Statement* create_class_statement(uint32_t line, String* name, ArrayList super, Statement* body){
+    ClassStmt* result = malloc(sizeof(ClassStmt));
+    if(result == NULL) return NULL;
+    result->line = line;
+    result->type = STMT_CLASS;
+    result->name = name;
+    result->superClasses = super;
+    result->body = body;
+    return (Statement*)result;
+}
 
 
 
@@ -314,7 +323,7 @@ static Statement* assert_statement(Parser *p){
 static Statement* return_statement(Parser *p){
     uint32_t line = p->currentToken.line;
     parser_consume_verified_token(p, TOK_RETURN);
-    Expr* value = (Expr*) None;
+    Expr* value = (Expr*)None_Expr;
     if(p->currentToken.type != TOK_NEW_LINE){
         value = expression(p); 
     }
@@ -377,6 +386,33 @@ static Statement* global_del_statement(Parser *p, StatementType stype){
 }
 
 
+
+static Statement* class_statement(Parser *p){
+    unsigned int expected_indent = p->indentationLevel + 1;
+    uint32_t line = p->currentToken.line;
+    parser_consume_verified_token(p, TOK_CLASS);
+    parser_expect_consume_token(p, TOK_IDENTIFIER);
+    String* name = parser_prev_token(p).literal;
+    ArrayList super = {0,0,0};
+
+    //gets the superclasses if there are any
+    if(match(p, TOK_LEFT_PAREN)){
+        array_list_create_cap(super, String*, 1);
+        do {  
+           parser_expect_token(p, TOK_IDENTIFIER);
+           array_list_append(super, String*, p->currentToken.literal);
+           parser_next_token(p);
+        }while (match(p, TOK_COMMA));
+    }
+
+    parser_expect_consume_token(p, TOK_RIGHT_PAREN);
+    parser_expect_consume_token(p, TOK_COLON);
+    parser_expect_consume_token(p, TOK_NEW_LINE);
+    Statement* body = block_statement(p, expected_indent);
+    return create_class_statement(line, name, super, body);
+}
+
+
 Statement* statement(Parser *p){
     parser_try_consume_token(p, TOK_NEW_LINE); 
     switch(p->currentToken.type){
@@ -402,6 +438,8 @@ Statement* statement(Parser *p){
             return global_del_statement(p, STMT_DEL);
         case TOK_GLOBAL:
             return global_del_statement(p, STMT_GLOBAL);
+        case TOK_CLASS:
+            return class_statement(p);
         case TOK_EOF:
             return NULL;
         default:
@@ -463,6 +501,13 @@ void delete_statement(Statement* statement){
             free(s);
             break;
         }
+        case STMT_CLASS: {
+            ClassStmt* s = (ClassStmt*)(statement);
+            for(int i = 0; i < s->superClasses.size; i++){
+
+            }
+            break;
+        }
         case STMT_WHILE: {
             WhileStmt* s = (WhileStmt*)(statement);
             delete_expr_tree(s->condition);
@@ -480,6 +525,13 @@ void delete_statement(Statement* statement){
         } 
         case STMT_RETURN: {
             ReturnStmt* s = (ReturnStmt*)(statement); 
+            free(s);
+            break;
+        }
+        case STMT_ASSERT: {
+            AssertStmt* s = (AssertStmt*)(statement);
+            delete_expr_tree(s->condition);
+            string_delete(s->msg);
             free(s);
             break;
         }
@@ -501,6 +553,5 @@ void delete_statement(Statement* statement){
         default:
             return; 
     }
-
 }
 
