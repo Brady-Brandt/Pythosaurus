@@ -7,6 +7,7 @@
 #include "arraylist.h"
 #include "hashmap.h"
 #include "allocator.h"
+#include "object.h"
 #include <stdnoreturn.h>
 
 struct LiteralExpr;
@@ -18,15 +19,28 @@ struct LiteralExpr;
 
 typedef struct {
     int count;
-    struct LiteralExpr* args[MAX_FUNC_COUNT];
+    ClassInstance* args[MAX_FUNC_COUNT];
     //TODO: ADD kwargs and varargs
 } FuncArgs;
 
 
 
-struct LiteralExpr* func_args_get(FuncArgs* args, int index);
+ClassInstance* func_args_get(FuncArgs* args, int index);
 
-void func_args_add(FuncArgs* args, struct LiteralExpr* value);
+void func_args_add(FuncArgs* args, ClassInstance* value);
+
+
+typedef ClassInstance* (*NativeMethod)(struct Interpretor*,MethodArgs*);
+
+
+
+//this defines methods for the builtin types 
+typedef struct {
+    const char* name;
+    NativeMethod method;
+    bool self; //whether the first param is self or not
+    int argCount;
+} NativeMethodInfo;
 
 
 typedef struct {
@@ -35,6 +49,10 @@ typedef struct {
     File* f;
     Stack stackFrames; //holds all variables 
     HashMap* functions;
+    HashMap* classes;
+
+    Allocator functionAllocator;
+    Allocator methodAllocator;
 } Interpretor;
 
 
@@ -43,15 +61,18 @@ void interpretor_create_scope(Interpretor* interpret);
 
 void interpretor_delete_scope(Interpretor* interpret);
 
-void interpretor_assign_var(Interpretor *interpret, String* name, struct LiteralExpr* value);
+void interpretor_assign_var(Interpretor *interpret, String* name, ClassInstance* value);
 
-void interpretor_get_var(Interpretor *interpret, String* name, struct LiteralExpr* result);
+ClassInstance* interpretor_get_var(Interpretor *interpret, String* name);
 
 
 void interpretor_global_var(Interpretor *interpret, String* name);
 
 void interpretor_del_value(Interpretor *interpret, LiteralExpr* val);
 
+void interpretor_add_class(Interpretor *interpret, Class* obj);
+
+Class* interpretor_get_class(Interpretor *interpret, String* name);
 
 static inline long interpretor_save_expression(Interpretor *interpret){
     return allocator_get_offset(&interpret->expressionAllocator);
@@ -64,9 +85,9 @@ static inline void interpretor_restore_expression(Interpretor *interpret, long o
 //creates a user defined function 
 void interpretor_create_function(Interpretor *interpret, FunctionStmt* func);
 
-void interpretor_return(Interpretor* interpret, LiteralExpr* value);
+void interpretor_return(Interpretor* interpret, ClassInstance* value);
 
-struct LiteralExpr* interpretor_call_function(Interpretor* interpret, String* name, FuncArgs args);
+ClassInstance* interpretor_call_function(Interpretor* interpret, String* name, FuncArgs args);
 
 noreturn void interpretor_throw_error(Interpretor *interpret, const char* fmt, ...);
 
