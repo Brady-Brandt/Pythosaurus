@@ -2,7 +2,6 @@
 #include "tokenizer.h"
 #include "arraylist.h"
 #include <stdbool.h>
-#include <setjmp.h>
 #include <stdnoreturn.h>
 #include "file.h"
 
@@ -64,7 +63,7 @@
 */
 
 typedef struct {
-    ArrayList tokens; 
+    ArrayList* tokens; 
     Token currentToken; 
     unsigned int tokenIndex; //index of the current token
     unsigned int indentationLevel;
@@ -72,7 +71,7 @@ typedef struct {
 } Parser;
 
 
-void parser_create(Parser *p, File* f, ArrayList tokens);
+void parser_create(Parser *p, File* f, ArrayList* tokens);
 
 Token parser_next_token(Parser *p);
 
@@ -105,7 +104,7 @@ void parser_try_consume_token(Parser *p, TokenType tok);
 noreturn void parser_new_error(Parser *p, const char* fmt, ...);
 
 
-ArrayList parse_tokens(Parser *p);
+ArrayList* parse_tokens(Parser *p);
 
 
 //this should not be invoked directly 
@@ -131,11 +130,3 @@ struct ParserState {
 void parser_save_state(Parser *p, struct ParserState* pstate);
 
 void parser_restore_state(Parser *p, struct ParserState* pstate);
-
-
-
-
-
-
-
-

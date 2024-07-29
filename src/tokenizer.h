@@ -119,6 +119,6 @@ typedef struct {
 } Token;
 
 
-ArrayList tokenize_file(File* file);
+ArrayList* tokenize_file(File* file);
 
 void token_delete(Token* t);

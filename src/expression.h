@@ -92,7 +92,7 @@ extern LiteralExpr __none_expr__;
 typedef struct {
     ExprType type;
     String* name;
-    ArrayList args; //arraylist of expressions 
+    ArrayList* args; //arraylist of expressions 
 } FuncExpr;
 
 

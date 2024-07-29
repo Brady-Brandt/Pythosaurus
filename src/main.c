@@ -15,10 +15,10 @@ int main(int argc, char** argv){
     }
   
     File file = file_open(argv[1]);
-    ArrayList tokens = tokenize_file(&file);
+    ArrayList* tokens = tokenize_file(&file);
     Parser p;
     parser_create(&p, &file, tokens);
-    ArrayList stmts = parse_tokens(&p);
+    ArrayList* stmts = parse_tokens(&p);
     interpt_stmts(&file, stmts);
 
     return 0;

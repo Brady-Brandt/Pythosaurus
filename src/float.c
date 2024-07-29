@@ -3,6 +3,7 @@
 #include "stringtype.h"
 
 #include <math.h>
+#include <time.h>
 
 
 static ClassInstance* __abs__(struct Interpretor* interpret, MethodArgs* args){
@@ -227,10 +228,10 @@ void create_float_class(struct Interpretor* interpret){
     PRIM_TYPE_FLOAT.native->name = "float";
     PRIM_TYPE_FLOAT.native->staticVars = NULL;
     PRIM_TYPE_FLOAT.native->type = NATIVE_CLASS_FLOAT;
-    PRIM_TYPE_FLOAT.native->methods = malloc(sizeof(ArrayList));
+    PRIM_TYPE_FLOAT.native->methods = NULL;
     PRIM_TYPE_FLOAT.isMutable = false;
 
-    ArrayList list;
+    ArrayList* list;
     array_list_create_cap(list, NativeMethodInfo, 40);    
     ADD_NATIVE_METHOD(list,__ABS__,__abs__,1, true);
     ADD_NATIVE_METHOD(list,__ADD__,__add__,2, true);
@@ -261,7 +262,7 @@ void create_float_class(struct Interpretor* interpret){
     ADD_NATIVE_METHOD(list,__TRUEDIV__,__truediv__,2, true);
     ADD_NATIVE_METHOD(list,__TRUNC__,__trunc__,1, true);
 
-    *PRIM_TYPE_FLOAT.native->methods = list;
+    PRIM_TYPE_FLOAT.native->methods = list;
 
     interpretor_add_class((Interpretor*)interpret, &PRIM_TYPE_FLOAT);
 }

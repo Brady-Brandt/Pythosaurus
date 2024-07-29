@@ -45,7 +45,7 @@ static Statement* create_expr_stmt(uint32_t line, Expr* expr){
 }
 
 
-static Statement* create_block_stmt(uint32_t line, ArrayList statements){
+static Statement* create_block_stmt(uint32_t line, ArrayList* statements){
     BlockStmt* result = malloc(sizeof(BlockStmt));
     if(result == NULL) return NULL;
     result->type = STMT_BLOCK;
@@ -89,7 +89,7 @@ static Statement* create_while_stmt(uint32_t line, Expr* condition, Statement* _
 }
 
 
-static Statement* create_func_stmt(uint32_t line, String* identifier, ArrayList parameters, Statement* body){
+static Statement* create_func_stmt(uint32_t line, String* identifier, ArrayList* parameters, Statement* body){
     FunctionStmt* result = malloc(sizeof(FunctionStmt));
     if(result == NULL) return NULL;
     result->type = STMT_FUNC;
@@ -128,7 +128,7 @@ static Statement* create_stmt(uint32_t line, StatementType type){
     return result;
 }
 
-static Statement* create_class_statement(uint32_t line, String* name, ArrayList super, Statement* body){
+static Statement* create_class_statement(uint32_t line, String* name, ArrayList* super, Statement* body){
     ClassStmt* result = malloc(sizeof(ClassStmt));
     if(result == NULL) return NULL;
     result->line = line;
@@ -190,7 +190,7 @@ static Statement* assign_statement(Parser* p){
 
 static Statement* block_statement(Parser* p, unsigned int expected_indent){
     p->indentationLevel++;
-    ArrayList statements;
+    ArrayList* statements;
     array_list_create_cap(statements, Statement*, 10);
     uint32_t line = p->currentToken.line;
     bool is_correct_indent = parser_match_indentation_level(p, expected_indent);
@@ -280,13 +280,13 @@ static Statement* function_statement(Parser *p){
     parser_expect_consume_token(p, TOK_IDENTIFIER);
     String* identifier = parser_prev_token(p).literal;
     parser_expect_consume_token(p, TOK_LEFT_PAREN);
-    ArrayList params;
+    ArrayList* params;
     array_list_create_cap(params, String*, 10);
 
     //TODO: VARADIC AND KEYWORD ARGS 
     if(p->currentToken.type != TOK_RIGHT_PAREN){
        do {
-           if(params.size >= 10){
+           if(params->size >= 10){
                 parser_new_error(p, "Invalid Parameter count: %s. Functions only support 10 parameters\n", identifier->str);
            } 
            parser_expect_token(p, TOK_IDENTIFIER);
@@ -357,7 +357,7 @@ static Statement* continue_statement(Parser *p){
 static Statement* global_del_statement(Parser *p, StatementType stype){
     uint32_t line = p->currentToken.line;
     parser_next_token(p); //consume either the Global || Del keyword
-    ArrayList vars;
+    ArrayList* vars;
     array_list_create_cap(vars, Expr*, 2);
     bool inside_paren = false;
     if(p->currentToken.type == TOK_LEFT_PAREN){
@@ -371,7 +371,7 @@ static Statement* global_del_statement(Parser *p, StatementType stype){
 
     if(inside_paren) parser_expect_consume_token(p, TOK_RIGHT_PAREN);
 
-    if(vars.size == 0){
+    if(vars->size == 0){
         parser_new_error(p, "Expected at least one value");
     }
 
@@ -393,7 +393,7 @@ static Statement* class_statement(Parser *p){
     parser_consume_verified_token(p, TOK_CLASS);
     parser_expect_consume_token(p, TOK_IDENTIFIER);
     String* name = parser_prev_token(p).literal;
-    ArrayList super = {0,0,0};
+    ArrayList* super = NULL;
 
     //gets the superclasses if there are any
     if(match(p, TOK_LEFT_PAREN)){
@@ -475,7 +475,7 @@ void delete_statement(Statement* statement){
         }
         case STMT_BLOCK: {
             BlockStmt* s = (BlockStmt*)(statement);
-            for(int i =0; i < s->statements.size; i++){
+            for(int i =0; i < array_list_size(s->statements); i++){
                 Statement* temp = array_list_get(s->statements, Statement*, i);
                 delete_statement(temp);
             }
@@ -503,7 +503,7 @@ void delete_statement(Statement* statement){
         }
         case STMT_CLASS: {
             ClassStmt* s = (ClassStmt*)(statement);
-            for(int i = 0; i < s->superClasses.size; i++){
+            for(int i = 0; i < array_list_size(s->superClasses); i++){
 
             }
             break;
@@ -543,7 +543,7 @@ void delete_statement(Statement* statement){
         case STMT_GLOBAL:
         case STMT_DEL: {
             GlobalDelStmt* s = (GlobalDelStmt*)statement;
-            for(int i = 0; i < s->values.size; i++){
+            for(int i = 0; i < array_list_size(s->values); i++){
                 Expr* expr = array_list_get(s->values, Expr*, i);
                 delete_expr_tree(expr);
             }

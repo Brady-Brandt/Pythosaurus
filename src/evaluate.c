@@ -252,17 +252,14 @@ static void evaluate_assignop_stmt(Interpretor *interpret, String* var, TokenTyp
 }
 
 
-
 static ClassInstance* evaluate_function_expression(Interpretor *interpret,Expr* expr){
     FuncExpr* fexpr = (FuncExpr*)expr;
     FuncArgs args = {0};
-
-    for(int i = 0; i < fexpr->args.size; i++){
+    for(int i = 0; i < array_list_size(fexpr->args); i++){
         Expr* param = array_list_get(fexpr->args, Expr*, i);
         ClassInstance* evaluatedParam = evaluate_expression(interpret, param);
         func_args_add(&args, evaluatedParam);
     }
-   
     return interpretor_call_function(interpret, fexpr->name, args);
 }
 
@@ -333,7 +330,7 @@ void evaluate_statement(Interpretor *interpret, Statement* statement){
                 BlockStmt* while_block = (BlockStmt*)wstmt->_while; 
 
                 CONTINUE_LOOP:
-                for(int i = 0; i < while_block->statements.size; i++){
+                for(int i = 0; i < array_list_size(while_block->statements); i++){
                     Statement* current_statement = array_list_get(while_block->statements, Statement*, i);
                     interpret->currentStmt = current_statement;
                     in_loop = true;
@@ -381,7 +378,7 @@ void evaluate_statement(Interpretor *interpret, Statement* statement){
         }
         case STMT_BLOCK: {
             BlockStmt* bstmt = (BlockStmt*)(statement);
-            for(int i = 0; i < bstmt->statements.size; i++){
+            for(int i = 0; i < array_list_size(bstmt->statements); i++){
                 Statement* current_statement = array_list_get(bstmt->statements, Statement*, i);
                 interpret->currentStmt = current_statement;
                 evaluate_statement(interpret, current_statement);
@@ -425,7 +422,7 @@ void evaluate_statement(Interpretor *interpret, Statement* statement){
         case STMT_DEL: {
             //TODO: once we add dicts and lists we need to support deleting indices/entries 
             GlobalDelStmt* gdstmt = (GlobalDelStmt*)(statement);
-            for(int i = 0; i < gdstmt->values.size; i++){
+            for(int i = 0; i < array_list_size(gdstmt->values); i++){
                 Expr* temp = array_list_get(gdstmt->values, Expr*, i);
                 if(temp->type == EXPR_LITERAL && ((LiteralExpr*)temp)->litType == LIT_IDENTIFIER){
                     LiteralExpr* val = (LiteralExpr*)temp;
@@ -438,7 +435,7 @@ void evaluate_statement(Interpretor *interpret, Statement* statement){
         }
         case STMT_GLOBAL: {
             GlobalDelStmt* gdstmt = (GlobalDelStmt*)(statement);
-            for(int i = 0; i < gdstmt->values.size; i++){
+            for(int i = 0; i < array_list_size(gdstmt->values); i++){
                 Expr* temp = array_list_get(gdstmt->values, Expr*, i);
                 if(temp->type == EXPR_LITERAL && ((LiteralExpr*)temp)->litType == LIT_IDENTIFIER){
                     LiteralExpr* val = (LiteralExpr*)temp;

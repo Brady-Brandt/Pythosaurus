@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <stdlib.h>
+#include <time.h>
 
 #include "expression.h"
 #include "arraylist.h"
@@ -36,7 +37,7 @@ static Expr* create_unary_expr(TokenType operator, Expr* right){
 }
 
 
-static Expr* create_func_expr(String* name, ArrayList args){
+static Expr* create_func_expr(String* name, ArrayList* args){
     FuncExpr* result = malloc(sizeof(FuncExpr));
     if(result == NULL) return NULL;
     result->type = EXPR_FUNC;
@@ -116,7 +117,7 @@ static Expr* primary(Parser *p){
 
 
 
-static ArrayList func_arg(Parser *p){
+static ArrayList* func_arg(Parser *p){
     //the function has no parameters 
     //return emtpy arg list 
     if(p->currentToken.type == TOK_RIGHT_PAREN){
@@ -124,11 +125,12 @@ static ArrayList func_arg(Parser *p){
         return DEFAULT_ARRAY_LIST;
     }
 
-    ArrayList args;
+    ArrayList* args;
     array_list_create_cap(args, Expr*, 4);
 
     do {
        Expr* arg = expression(p);
+
        array_list_append(args, Expr*, arg);
     }while(match(p, TOK_COMMA));
 
@@ -141,7 +143,7 @@ static ArrayList func_arg(Parser *p){
 static Expr* call(Parser *p){
    Expr* expr = primary(p);
    while(match(p, TOK_LEFT_PAREN)){
-        ArrayList args = func_arg(p);
+        ArrayList* args = func_arg(p);
         if(expr->type != EXPR_LITERAL){
             parser_new_error(p, "Invalid function name\n");
         }
@@ -331,11 +333,10 @@ void delete_expr_tree(Expr* expression){
 
         case EXPR_FUNC: {
             FuncExpr* fexpr = (FuncExpr*)expression; 
-            for(int i = 0; i < fexpr->args.size; i++){
+            for(int i = 0; i < array_list_size(fexpr->args); i++){
                 Expr* e = array_list_get(fexpr->args, Expr*, i);
                 delete_expr_tree(e);
             }
-
             string_delete(fexpr->name);
             array_list_delete(fexpr->args);
             free(fexpr);

@@ -3,7 +3,6 @@
 #include "interpret.h"
 #include "stringtype.h"
 
-#include <ctype.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -216,9 +215,9 @@ void create_str_class(struct Interpretor* interpret){
     PRIM_TYPE_STR.native->name = "str";
     PRIM_TYPE_STR.native->staticVars = NULL;
     PRIM_TYPE_STR.native->type = NATIVE_CLASS_STR;
-    PRIM_TYPE_STR.native->methods = malloc(sizeof(ArrayList));
+    PRIM_TYPE_STR.native->methods = NULL; 
     PRIM_TYPE_STR.isMutable = false;
-    ArrayList list;
+    ArrayList* list;
     array_list_create_cap(list, NativeMethodInfo, 50);
 
     ADD_NATIVE_METHOD(list,__REPR__,__repr__, 1, true);
@@ -237,7 +236,7 @@ void create_str_class(struct Interpretor* interpret){
     ADD_NATIVE_METHOD(list,__MUL__,__mul__, 2, true);
     ADD_NATIVE_METHOD(list,__NE__,__ne__, 2, true);
     ADD_NATIVE_METHOD(list,__GT__,__gt__, 2, true);
-    *PRIM_TYPE_STR.native->methods = list;
+    PRIM_TYPE_STR.native->methods = list;
 
     interpretor_add_class((Interpretor*)interpret, &PRIM_TYPE_STR);
 }

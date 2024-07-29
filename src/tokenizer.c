@@ -12,7 +12,7 @@
 
 
 typedef struct {
-   ArrayList tokens;
+   ArrayList* tokens;
    int line;
    File* file;
    char currentChar;
@@ -31,7 +31,7 @@ static void tokenizer_create(Tokenizer *tokenizer, File* file){
 }
 
 
-static ArrayList delete_tokenizer(Tokenizer *tokenizer){
+static ArrayList* delete_tokenizer(Tokenizer *tokenizer){
     string_delete(tokenizer->currentString);
     return tokenizer->tokens;
 }
@@ -52,8 +52,8 @@ static char prev_char(Tokenizer *tokenizer){
 
 
 TokenType get_prev_token(Tokenizer *tokenizer){
-    if(tokenizer->tokens.size != 0) {
-        Token t = array_list_get(tokenizer->tokens, Token, tokenizer->tokens.size - 1);
+    if(tokenizer->tokens->size != 0) {
+        Token t = array_list_get(tokenizer->tokens, Token, tokenizer->tokens->size - 1);
         return t.type;
     }
     return TOK_MAX;
@@ -233,7 +233,7 @@ static void spaces_to_tab(Tokenizer *tokenizer){
     } \
 
 
-ArrayList tokenize_file(File* file){
+ArrayList* tokenize_file(File* file){
 
     Tokenizer tokenizer = {0};
     tokenizer_create(&tokenizer, file);

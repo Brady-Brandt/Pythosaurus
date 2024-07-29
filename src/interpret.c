@@ -44,7 +44,7 @@ typedef struct {
 
 
 void interpretor_create_scope(Interpretor* interpret){
-    if(interpret->stackFrames.size == MAX_SCOPE_DEPTH - 1){
+    if(interpret->stackFrames->size == MAX_SCOPE_DEPTH - 1){
         interpretor_throw_error(interpret, "Maximum scope depth of %d exceeded\n", MAX_SCOPE_DEPTH);
     }
     Scope* result = malloc(sizeof(Scope));
@@ -160,7 +160,7 @@ void func_args_add(FuncArgs* args, ClassInstance* value){
 typedef ClassInstance* (*NativeFunc)(Interpretor*, FuncArgs*);
 
 typedef struct {
-    ArrayList args;
+    ArrayList* args;
     BlockStmt* body;
 } UserFunc;
 
@@ -183,7 +183,7 @@ static void delete_funcions(void* variable){
 
 void interpretor_create_function(Interpretor *interpret, FunctionStmt* func) {
    Function* funcdef = malloc(sizeof(Function));
-   funcdef->argCount = func->parameters.size;
+   funcdef->argCount = array_list_size(func->parameters);
    funcdef->isNative = false;
    funcdef->funcBody.user.body = (BlockStmt*)func->body;
    funcdef->funcBody.user.args = func->parameters;
@@ -248,8 +248,8 @@ ClassInstance* interpretor_call_function(Interpretor* interpret, String* name, F
         }
 
         //execute the body of the function 
-        ArrayList body_stmts = func->funcBody.user.body->statements;
-        for(int i = 0; i < body_stmts.size; i++){
+        ArrayList* body_stmts = func->funcBody.user.body->statements;
+        for(int i = 0; i < array_list_size(body_stmts); i++){
             Statement* current_stmt = array_list_get(body_stmts,Statement*, i);
             interpret->currentStmt = current_stmt;
             evaluate_statement(interpret, current_stmt);
@@ -306,7 +306,7 @@ static void delete_classes(void* class){
     } else {
         UserClass* u = c->user;
         if(u->superClass != NULL){
-            ArrayList super = *u->superClass;
+            ArrayList* super = u->superClass;
             array_list_delete(super);
             free(u->superClass);
         }
@@ -323,7 +323,7 @@ static void delete_classes(void* class){
 }
 
 
-void interpt_stmts(File* file, ArrayList stmts){
+void interpt_stmts(File* file, ArrayList* stmts){
     Interpretor interpret = {0};
     interpret.f = file;
     //call stack is going to be 255 for now
@@ -342,7 +342,7 @@ void interpt_stmts(File* file, ArrayList stmts){
     create_str_class((struct Interpretor*)&interpret);
 
 
-    for(int i = 0; i < stmts.size; i++){
+    for(int i = 0; i < array_list_size(stmts); i++){
         Statement* current_stmt = array_list_get(stmts, Statement*, i);
         interpret.currentStmt = current_stmt;
         evaluate_statement(&interpret, current_stmt);
@@ -353,7 +353,7 @@ void interpt_stmts(File* file, ArrayList stmts){
 
 
     //cleanup 
-    for(int i = 0; i < stmts.size; i++){
+    for(int i = 0; i < array_list_size(stmts); i++){
         Statement* current_stmt = array_list_get(stmts, Statement*, i);
         delete_statement(current_stmt);
     }

@@ -87,7 +87,7 @@ typedef struct {
 typedef struct {
     StatementType type;
     uint32_t line;
-    ArrayList statements;
+    ArrayList* statements;
 } BlockStmt;
 
 
@@ -121,7 +121,7 @@ typedef struct {
     StatementType type;
     uint32_t line;
     String* identifier;
-    ArrayList parameters;
+    ArrayList* parameters;
     Statement* body;
 } FunctionStmt;
 
@@ -145,7 +145,7 @@ typedef struct {
 typedef struct {
     StatementType type;
     uint32_t line;
-    ArrayList values;
+    ArrayList* values;
 } GlobalDelStmt;
 
 
@@ -153,7 +153,7 @@ typedef struct {
     StatementType type;
     uint32_t line;
     String* name;
-    ArrayList superClasses; //type string  
+    ArrayList* superClasses; //type string  
     Statement* body;
 } ClassStmt;
 

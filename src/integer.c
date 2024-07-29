@@ -311,9 +311,9 @@ void create_int_class(struct Interpretor* interpret){
     PRIM_TYPE_INT.native->name = "int";
     PRIM_TYPE_INT.native->staticVars = NULL;
     PRIM_TYPE_INT.native->type = NATIVE_CLASS_INT;
-    PRIM_TYPE_INT.native->methods = malloc(sizeof(ArrayList));
+    PRIM_TYPE_INT.native->methods = NULL;
     PRIM_TYPE_INT.isMutable = false;
-    ArrayList list;
+    ArrayList* list;
     array_list_create_cap(list, NativeMethodInfo, 50);
 
     ADD_NATIVE_METHOD(list,__ABS__,__abs__,1, true);
@@ -352,29 +352,29 @@ void create_int_class(struct Interpretor* interpret){
     ADD_NATIVE_METHOD(list,__TRUNC__,__trunc__,1, true);
     ADD_NATIVE_METHOD(list,__XOR__,__xor__,2, true);  
 
-    *PRIM_TYPE_INT.native->methods = list;
+    PRIM_TYPE_INT.native->methods = list;
 
     PRIM_TYPE_BOOL.isNative = true;
     PRIM_TYPE_BOOL.native = malloc(sizeof(NativeClass));
-    PRIM_TYPE_BOOL.native->superClass = malloc(sizeof(ArrayList)); 
+    PRIM_TYPE_BOOL.native->superClass = NULL; 
     PRIM_TYPE_BOOL.native->name = "bool";
     PRIM_TYPE_BOOL.native->staticVars = NULL;
     PRIM_TYPE_BOOL.native->type = NATIVE_CLASS_BOOL;
-    PRIM_TYPE_BOOL.native->methods = malloc(sizeof(ArrayList));
+    PRIM_TYPE_BOOL.native->methods = NULL;
     PRIM_TYPE_BOOL.isMutable = false;
 
 
-    ArrayList super_class;
+    ArrayList* super_class;
     array_list_create_cap(super_class, Class*, 1);
     array_list_append(super_class, Class*, &PRIM_TYPE_INT);
-    *PRIM_TYPE_BOOL.native->superClass = super_class;
+    PRIM_TYPE_BOOL.native->superClass = super_class;
 
-    ArrayList bool_methods;
+    ArrayList* bool_methods;
     array_list_create_cap(bool_methods, NativeMethodInfo, 5);
     ADD_NATIVE_METHOD(bool_methods, __REPR__, bool_repr__, 1, true);
     ADD_NATIVE_METHOD(bool_methods, __STR__, bool_repr__, 1, true);
 
-    *PRIM_TYPE_BOOL.native->methods = bool_methods;
+    PRIM_TYPE_BOOL.native->methods = bool_methods;
 
     interpretor_add_class((Interpretor*)interpret, &PRIM_TYPE_INT);
     interpretor_add_class((Interpretor*)interpret, &PRIM_TYPE_BOOL);

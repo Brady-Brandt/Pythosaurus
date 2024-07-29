@@ -8,7 +8,6 @@
 #include <string.h>
 #include <limits.h>
 #include <stdbool.h>
-#include <time.h>
 
 const char* DUNDER_METHODS[] = {
 "__abs__",
@@ -118,8 +117,8 @@ const char* class_get_name(ClassInstance* self){
 
 
 ClassInstance* call_native_method(struct Interpretor* interpret, ClassInstance* self, const char* name, MethodArgs* args){
-    ArrayList methods = *self->classType->native->methods;
-    for(int i = 0; i < methods.size; i++){
+    ArrayList* methods = self->classType->native->methods;
+    for(int i = 0; i < methods->size; i++){
         NativeMethodInfo m = array_list_get(methods, NativeMethodInfo, i);
         //can just compare pointers 
         //since we use the same ptr for all native dunder methods 
@@ -129,12 +128,12 @@ ClassInstance* call_native_method(struct Interpretor* interpret, ClassInstance* 
     }
 
     if(self->classType->native->superClass != NULL){
-        ArrayList super_class = *self->classType->native->superClass;
+        ArrayList* super_class = self->classType->native->superClass;
 
-        for(int i =0; i < super_class.size; i++){
+        for(int i =0; i < super_class->size; i++){
             Class* c = array_list_get(super_class, Class*, i);
-            methods = *c->native->methods;
-            for(int i = 0; i < methods.size; i++){
+            methods = c->native->methods;
+            for(int i = 0; i < methods->size; i++){
                 NativeMethodInfo m = array_list_get(methods, NativeMethodInfo, i);
                 if(name == m.name){
                     return m.method(interpret, args);
@@ -197,9 +196,9 @@ void create_none_class(struct Interpretor* interpret){
     PRIM_TYPE_NONE.native->name = "none";
     PRIM_TYPE_NONE.native->staticVars = NULL;
     PRIM_TYPE_NONE.native->type = NATIVE_CLASS_NONE;
-    PRIM_TYPE_NONE.native->methods = malloc(sizeof(ArrayList));
+    PRIM_TYPE_NONE.native->methods = NULL;
     PRIM_TYPE_NONE.isMutable = true; //technically not, but there should only be one None instance
-    ArrayList none_list;
+    ArrayList* none_list;
     array_list_create_cap(none_list, NativeMethodInfo, 4);
 
     ADD_NATIVE_METHOD(none_list, __REPR__, repr_none, 1, true);
@@ -207,7 +206,7 @@ void create_none_class(struct Interpretor* interpret){
     ADD_NATIVE_METHOD(none_list, __NE__, ne_none, 2, true);
     ADD_NATIVE_METHOD(none_list, __HASH__, hash_none, 1, true);
    
-    *PRIM_TYPE_NONE.native->methods = none_list;
+    PRIM_TYPE_NONE.native->methods = none_list;
 
 
     PRIM_TYPE_NOT_IMPLEMENTED.isNative = true;
@@ -216,16 +215,16 @@ void create_none_class(struct Interpretor* interpret){
     PRIM_TYPE_NOT_IMPLEMENTED.native->name = "notimplemented";
     PRIM_TYPE_NOT_IMPLEMENTED.native->staticVars = NULL;
     PRIM_TYPE_NOT_IMPLEMENTED.native->type = NATIVE_CLASS_NOT_IMPLEMENTED;
-    PRIM_TYPE_NOT_IMPLEMENTED.native->methods = malloc(sizeof(ArrayList));
+    PRIM_TYPE_NOT_IMPLEMENTED.native->methods = NULL;
 
     PRIM_TYPE_NOT_IMPLEMENTED.isMutable = true; //same situation None
-    ArrayList not_impl_list;
+    ArrayList* not_impl_list;
 
     array_list_create_cap(not_impl_list, NativeMethodInfo, 1);
 
     ADD_NATIVE_METHOD(not_impl_list, __REPR__, repr_notimplemeted, 1, true);
     
-    *PRIM_TYPE_NOT_IMPLEMENTED.native->methods = not_impl_list;
+    PRIM_TYPE_NOT_IMPLEMENTED.native->methods = not_impl_list;
 
 
 
@@ -288,13 +287,9 @@ ClassInstance* new_str(struct Interpretor* interpret, String* val){
 
 void delete_native_class(NativeClass *class){
     if(class->superClass != NULL){
-        ArrayList list = *class->superClass;
-        array_list_delete(list);
-        free(class->superClass);
+        array_list_delete(class->superClass);
     }
-    ArrayList methods = *class->methods;
-    array_list_delete(methods);
-    free(class->methods);
+    array_list_delete(class->methods);
     free(class);
 }
 

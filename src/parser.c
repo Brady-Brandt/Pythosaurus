@@ -2,7 +2,6 @@
 #include "arraylist.h"
 #include "file.h"
 #include "statement.h"
-#include "stringtype.h"
 #include "tokenizer.h"
 #include "print.h"
 
@@ -13,10 +12,9 @@
 
 
 
-void parser_create(Parser *p, File* f, ArrayList tokens){
-    if(tokens.size < 1){
-        fprintf(stderr, "Invalid token count\n");
-        exit(1);
+void parser_create(Parser *p, File* f, ArrayList* tokens){
+    if(array_list_size(tokens) < 1){
+        exit(0);
     }
     p->tokens = tokens; 
     p->currentToken = (Token){TOK_MAX, NULL};
@@ -39,7 +37,7 @@ Token parser_next_token(Parser *p){
         p->currentToken = res;
         return res;
     }
-    if(p->tokenIndex + 1 < p->tokens.size){
+    if(p->tokenIndex + 1 < p->tokens->size){
         p->tokenIndex++;
         Token res = array_list_get(p->tokens, Token, p->tokenIndex);
         p->currentToken = res;
@@ -54,7 +52,7 @@ Token parser_next_token(Parser *p){
 
 
 Token parser_prev_token(Parser *p){ 
-    if(p->tokenIndex > 0 && p->tokenIndex <= p->tokens.size){
+    if(p->tokenIndex > 0 && p->tokenIndex <= p->tokens->size){
         return array_list_get(p->tokens, Token, (p->tokenIndex - 1));
     }
     p->currentToken = (Token){TOK_EOF, NULL};  
@@ -126,7 +124,7 @@ noreturn void parser_new_error(Parser *p, const char* fmt, ...){
 
 
 Token parser_peek_token(Parser *p){
-    if(p->tokenIndex + 1 < p->tokens.size){
+    if(p->tokenIndex + 1 < p->tokens->size){
         return array_list_get(p->tokens, Token, p->tokenIndex + 1);
     }
     return (Token){TOK_EOF, NULL};  
@@ -184,8 +182,8 @@ void parser_restore_state(Parser *p, struct ParserState* pstate){
 
 
 
-ArrayList parse_tokens(Parser *p){
-    ArrayList statements;
+ArrayList* parse_tokens(Parser *p){
+    ArrayList* statements;
     array_list_create(statements, Statement*);
     parser_next_token(p);
 

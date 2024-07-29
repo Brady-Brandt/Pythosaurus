@@ -47,7 +47,7 @@ typedef struct {
     Statement* currentStmt;
     Allocator expressionAllocator; //stack for computing values
     File* f;
-    Stack stackFrames; //holds all variables 
+    Stack* stackFrames; //holds all variables 
     HashMap* functions;
     HashMap* classes;
 
@@ -91,4 +91,4 @@ ClassInstance* interpretor_call_function(Interpretor* interpret, String* name, F
 
 noreturn void interpretor_throw_error(Interpretor *interpret, const char* fmt, ...);
 
-void interpt_stmts(File* file, ArrayList stmts);
+void interpt_stmts(File* file, ArrayList* stmts);
