@@ -14,6 +14,8 @@ String* string_create_with_cap(uint32_t size);
 
 String* string_from_str(const char* str);
 
+String* string_copy(String* s);
+
 void string_push(String** s, char c);
 
 void string_clear(String* s);

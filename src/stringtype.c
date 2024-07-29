@@ -45,6 +45,14 @@ String* string_from_str(const char* str){
 }
 
 
+
+String* string_copy(String* s){
+    String* res = string_create_with_cap(s->size);
+    strcpy(res->str, s->str);
+    return res;
+}
+
+
 void string_push(String** s, char c){
     String* str = *s;
     if(str->size == str->capacity - 1){
