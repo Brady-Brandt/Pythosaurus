@@ -1,52 +1,53 @@
 #pragma once 
 #include "interpret.h"
+#include "object.h"
 
 //returns the absolute value of a number
-ClassInstance* _abs(Interpretor *interpret, FuncArgs* args);
+ClassInstance* _abs(FuncArgs* args);
 
-ClassInstance* all(Interpretor *interpret, FuncArgs* args);
+ClassInstance* all(FuncArgs* args);
 
-ClassInstance* any(Interpretor *interpret, FuncArgs* args);
+ClassInstance* any(FuncArgs* args);
 
-ClassInstance* ascii(Interpretor *interpret, FuncArgs* args);
+ClassInstance* ascii(FuncArgs* args);
 
-ClassInstance* bin(Interpretor *interpret, FuncArgs* args);
+ClassInstance* bin(FuncArgs* args);
 
-ClassInstance* _bool(Interpretor *interpret, FuncArgs* args);
+ClassInstance* _bool(FuncArgs* args);
 
-ClassInstance* bytearray(Interpretor *interpret, FuncArgs* args);
+ClassInstance* bytearray(FuncArgs* args);
 
-ClassInstance* bytes(Interpretor *interpret, FuncArgs* args);
+ClassInstance* bytes(FuncArgs* args);
 
-ClassInstance* callable(Interpretor *interpret, FuncArgs* args);
+ClassInstance* callable(FuncArgs* args);
 
-ClassInstance* chr(Interpretor *interpret, FuncArgs* args);
+ClassInstance* chr(FuncArgs* args);
 
-ClassInstance* _float(Interpretor *interpret, FuncArgs* args);
+ClassInstance* _float(FuncArgs* args);
 
-ClassInstance* format(Interpretor *interpret, FuncArgs* args);
+ClassInstance* format(FuncArgs* args);
 
-ClassInstance* hash(Interpretor *interpret, FuncArgs* args);
+ClassInstance* hash(FuncArgs* args);
 
-ClassInstance* hex(Interpretor *interpret, FuncArgs* args);
+ClassInstance* hex(FuncArgs* args);
 
-ClassInstance* id(Interpretor *interpret, FuncArgs* args);
+ClassInstance* id(FuncArgs* args);
 
-ClassInstance* input(Interpretor *interpret, FuncArgs* args);
+ClassInstance* input(FuncArgs* args);
 
-ClassInstance* _int(Interpretor *interpret, FuncArgs* args);
+ClassInstance* _int(FuncArgs* args);
 
-ClassInstance* len(Interpretor *interpret, FuncArgs* args);
+ClassInstance* len(FuncArgs* args);
 
-ClassInstance* open(Interpretor *interpret, FuncArgs* args);
+ClassInstance* open(FuncArgs* args);
 
-ClassInstance* print(Interpretor *interpret, FuncArgs* args);
+ClassInstance* print(FuncArgs* args);
 
-ClassInstance* _round(Interpretor *interpret, FuncArgs* args);
+ClassInstance* _round(FuncArgs* args);
 
-ClassInstance* sorted(Interpretor *interpret, FuncArgs* args);
+ClassInstance* sorted(FuncArgs* args);
 
-ClassInstance* type(Interpretor *interpret, FuncArgs* args);
+ClassInstance* type(FuncArgs* args);
 
 
 

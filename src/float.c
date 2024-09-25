@@ -6,93 +6,72 @@
 #include <time.h>
 
 
-static ClassInstance* __abs__(struct Interpretor* interpret, MethodArgs* args){
+static ClassInstance* __abs__(MethodArgs* args){
     double* f = (double*)get_primitive(__SELF__);
-    return new_float(interpret, fabs(*f));
+    return new_float(fabs(*f));
 }
 
-static ClassInstance* __add__(struct Interpretor* interpret, MethodArgs* args){
+static ClassInstance* __add__(MethodArgs* args){
     ClassInstance* arg = __M_ARG__(1); 
     if(!is_number_class(arg)){
         return NotImplemented;
     }
     double* a = (double*)get_primitive(__SELF__);
     double* b = (double*)get_primitive(arg);
-    return new_float(interpret, *a + *b);
+    return new_float(*a + *b);
 }
 
-static ClassInstance* __bool__(struct Interpretor* interpret, MethodArgs* args){
+static ClassInstance* __bool__(MethodArgs* args){
     double* a = (double*)get_primitive(__SELF__);
-    return new_bool(interpret, (bool)*a);
+    return new_bool((bool)*a);
 }
 
-static ClassInstance* __ceil__(struct Interpretor* interpret, MethodArgs* args){
+static ClassInstance* __ceil__(MethodArgs* args){
     double* a = (double*)get_primitive(__SELF__);
-    return  new_integer(interpret, ceil(*a));
+    return  new_integer(ceil(*a));
 }
 
-static ClassInstance* __divmod__(struct Interpretor* interpret, MethodArgs* args){ 
-    interpretor_throw_error((Interpretor*)interpret, "divmod not implemeted yet for float");
+static ClassInstance* __divmod__(MethodArgs* args){ 
+    interpretor_throw_error("divmod not implemeted yet for float");
 }
 
 
-static ClassInstance* __eq__(struct Interpretor* interpret, MethodArgs* args){
+static ClassInstance* __eq__(MethodArgs* args){
     ClassInstance* arg = __M_ARG__(1); 
     if(!is_number_class(arg)){
 		return NotImplemented;
     }
     double* a = (double*)get_primitive(__SELF__);
     double* b = (double*)get_primitive(arg);
-    return new_bool(interpret, *a == *b);
+    return new_bool(*a == *b);
 }
 
 
-static ClassInstance* __float__(struct Interpretor* interpret, MethodArgs* args){
+static ClassInstance* __float__(MethodArgs* args){
     double* a = (double*)get_primitive(__SELF__);
-    return new_float(interpret, (double)*a);
+    return new_float((double)*a);
 }
 
-static ClassInstance* __floor__(struct Interpretor* interpret, MethodArgs* args){
+static ClassInstance* __floor__(MethodArgs* args){
     double* a = (double*)get_primitive(__SELF__);
-    return  new_integer(interpret, floor(*a));
+    return  new_integer(floor(*a));
 }
 
-static ClassInstance* __floordiv__(struct Interpretor* interpret, MethodArgs* args){
+static ClassInstance* __floordiv__(MethodArgs* args){
     ClassInstance* arg = __M_ARG__(1); 
     if(!is_number_class(arg)){
 		return NotImplemented;
     }
     double* a = (double*)get_primitive(__SELF__);
     double* b = (double*)get_primitive(arg);
-    return new_integer(interpret, *a / *b);
+    return new_integer(*a / *b);
 }
 
-static ClassInstance* __format__(struct Interpretor* interpret, MethodArgs* args){
-    interpretor_throw_error((Interpretor*)interpret, "format not implemeted yet for float");
+static ClassInstance* __format__(MethodArgs* args){
+    interpretor_throw_error("format not implemeted yet for float");
 }
 
-static ClassInstance* __ge__(struct Interpretor* interpret, MethodArgs* args){
-    ClassInstance* arg = __M_ARG__(1); 
-    if(!is_number_class(arg)){
-		return NotImplemented;
-    }
-
-    double* a = (double*)get_primitive(__SELF__);
-    double* b = (double*)get_primitive(arg);
-    return new_bool(interpret, *a >= *b);
-}
-
-static ClassInstance* __hash__(struct Interpretor* interpret, MethodArgs* args){
-    interpretor_throw_error((Interpretor*)interpret, "hash not implemeted yet for float");
-}
-
-
-static ClassInstance* __int__(struct Interpretor* interpret, MethodArgs* args){
-    double* a = (double*)get_primitive(__SELF__);
-    return  new_integer(interpret, *a);
-}
-
-static ClassInstance* __le__(struct Interpretor* interpret, MethodArgs* args){
+static ClassInstance* __ge__(MethodArgs* args){
     ClassInstance* arg = __M_ARG__(1); 
     if(!is_number_class(arg)){
 		return NotImplemented;
@@ -100,128 +79,149 @@ static ClassInstance* __le__(struct Interpretor* interpret, MethodArgs* args){
 
     double* a = (double*)get_primitive(__SELF__);
     double* b = (double*)get_primitive(arg);
-    return new_bool(interpret, *a <= *b);
+    return new_bool(*a >= *b);
 }
 
-static ClassInstance* __lt__(struct Interpretor* interpret, MethodArgs* args){
+static ClassInstance* __hash__(MethodArgs* args){
+    interpretor_throw_error("hash not implemeted yet for float");
+}
+
+
+static ClassInstance* __int__(MethodArgs* args){
+    double* a = (double*)get_primitive(__SELF__);
+    return  new_integer(*a);
+}
+
+static ClassInstance* __le__(MethodArgs* args){
+    ClassInstance* arg = __M_ARG__(1); 
+    if(!is_number_class(arg)){
+		return NotImplemented;
+    }
+
+    double* a = (double*)get_primitive(__SELF__);
+    double* b = (double*)get_primitive(arg);
+    return new_bool(*a <= *b);
+}
+
+static ClassInstance* __lt__(MethodArgs* args){
     ClassInstance* arg = __M_ARG__(1); 
     if(!is_number_class(arg)){
 		return NotImplemented;
     }
     double* a = (double*)get_primitive(__SELF__);
     double* b = (double*)get_primitive(arg);
-    return new_bool(interpret, *a < *b);
+    return new_bool(*a < *b);
 }
 
 
-static ClassInstance* __mod__(struct Interpretor* interpret, MethodArgs* args){
+static ClassInstance* __mod__(MethodArgs* args){
     ClassInstance* arg = __M_ARG__(1); 
     if(!is_number_class(arg)){
 		return NotImplemented;
     }
     double* a = (double*)get_primitive(__SELF__);
     double* b = (double*)get_primitive(arg);
-    return new_float(interpret, fmod(*a, *b));
+    return new_float(fmod(*a, *b));
 }
 
 
-static ClassInstance* __mul__(struct Interpretor* interpret, MethodArgs* args){
+static ClassInstance* __mul__(MethodArgs* args){
     ClassInstance* arg = __M_ARG__(1); 
     if(!is_number_class(arg)){
 		return NotImplemented;
     }
     double* a = (double*)get_primitive(__SELF__);
     double* b = (double*)get_primitive(arg);
-    return new_float(interpret, *a * *b);
+    return new_float(*a * *b);
 }
 
-static ClassInstance* __ne__(struct Interpretor* interpret, MethodArgs* args){
+static ClassInstance* __ne__(MethodArgs* args){
     ClassInstance* arg = __M_ARG__(1); 
     if(!is_number_class(arg)){
 		return NotImplemented;
     }
     double* a = (double*)get_primitive(__SELF__);
     double* b = (double*)get_primitive(arg);
-    return new_float(interpret, *a != *b);
+    return new_float(*a != *b);
 }
 
 
-static ClassInstance* __neg__(struct Interpretor* interpret, MethodArgs* args){
+static ClassInstance* __neg__(MethodArgs* args){
     double* a = (double*)get_primitive(__SELF__);
-    return  new_float(interpret, -(*a));
+    return  new_float(-(*a));
 }
 
-static ClassInstance* __pos__(struct Interpretor* interpret, MethodArgs* args){
+static ClassInstance* __pos__(MethodArgs* args){
     double* a = (double*)get_primitive(__SELF__);
-    return  new_float(interpret, *a);
+    return  new_float(*a);
 }
 
-static ClassInstance* __pow__(struct Interpretor* interpret, MethodArgs* args){
+static ClassInstance* __pow__(MethodArgs* args){
     ClassInstance* arg = __M_ARG__(1); 
     if(!is_number_class(arg)){
 		return NotImplemented;
     }
     double* a = (double*)get_primitive(__SELF__);
     double* b = (double*)get_primitive(arg);
-    return new_float(interpret, pow(*a, *b));
+    return new_float(pow(*a, *b));
 }
 
-static ClassInstance* __repr__(struct Interpretor* interpret, MethodArgs* args){ 
+static ClassInstance* __repr__(MethodArgs* args){ 
     double* a = (double*)get_primitive(__SELF__);
     char buffer[50];
     int size = snprintf(buffer, 50, "%g", *a);
     buffer[size] = '\0';
     String* res = string_from_str(buffer);
-    return new_str(interpret, res);
+    return new_str(res);
 }
 
-static ClassInstance* __round__(struct Interpretor* interpret, MethodArgs* args){
-    interpretor_throw_error((Interpretor*)interpret, "round not implemeted yet for float");
+static ClassInstance* __round__(MethodArgs* args){
+    interpretor_throw_error("round not implemeted yet for float");
 }
 
-static ClassInstance* __gt__(struct Interpretor* interpret, MethodArgs* args){
+static ClassInstance* __gt__(MethodArgs* args){
     ClassInstance* arg = __M_ARG__(1); 
     if(!is_number_class(arg)){
 		return NotImplemented;
     }
     double* a = (double*)get_primitive(__SELF__);
     double* b = (double*)get_primitive(arg);
-    return new_bool(interpret, *a > *b);
+    return new_bool(*a > *b);
 }
 
-static ClassInstance* __str__(struct Interpretor* interpret, MethodArgs* args){
-    return __repr__(interpret, args);
+static ClassInstance* __str__(MethodArgs* args){
+    return __repr__(args);
 }
 
 
-static ClassInstance* __sub__(struct Interpretor* interpret, MethodArgs* args){
+static ClassInstance* __sub__(MethodArgs* args){
     ClassInstance* arg = __M_ARG__(1); 
     if(!is_number_class(arg)){
 		return NotImplemented;
     }
     double* a = (double*)get_primitive(__SELF__);
     double* b = (double*)get_primitive(arg);
-    return new_float(interpret, *a - *b);
+    return new_float(*a - *b);
 }
 
-static ClassInstance* __truediv__(struct Interpretor* interpret, MethodArgs* args){
+static ClassInstance* __truediv__(MethodArgs* args){
     ClassInstance* arg = __M_ARG__(1); 
     if(!is_number_class(arg)){
 		return NotImplemented;
     }
     double* a = (double*)get_primitive(__SELF__);
     double* b = (double*)get_primitive(arg);
-    return new_float(interpret, (double)*a / (double)*b);
+    return new_float((double)*a / (double)*b);
 }
 
-static ClassInstance* __trunc__(struct Interpretor* interpret, MethodArgs* args){
+static ClassInstance* __trunc__(MethodArgs* args){
     double* a = (double*)get_primitive(__SELF__);
-    return  new_float(interpret, *a);
+    return  new_float(*a);
 }
 
 
 
-void create_float_class(struct Interpretor* interpret){
+void create_float_class(){
     PRIM_TYPE_FLOAT.isNative = true;
     PRIM_TYPE_FLOAT.native = malloc(sizeof(NativeClass));
     PRIM_TYPE_FLOAT.native->superClass = NULL; 
@@ -264,7 +264,7 @@ void create_float_class(struct Interpretor* interpret){
 
     PRIM_TYPE_FLOAT.native->methods = list;
 
-    interpretor_add_class((Interpretor*)interpret, &PRIM_TYPE_FLOAT);
+    interpretor_add_class(&PRIM_TYPE_FLOAT);
 }
 
  

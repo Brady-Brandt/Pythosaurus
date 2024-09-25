@@ -12,113 +12,82 @@
 
 
 
-static ClassInstance* __abs__(struct Interpretor* interpret, MethodArgs* args){
+static ClassInstance* __abs__(MethodArgs* args){
     long* integer = (long*)get_primitive(__SELF__);
-    return new_integer(interpret, labs(*integer));
+    return new_integer(labs(*integer));
 }
 
-static ClassInstance* __add__(struct Interpretor* interpret, MethodArgs* args){
+static ClassInstance* __add__(MethodArgs* args){
     ClassInstance* arg = __M_ARG__(1); 
     if(!is_int_class(arg)){
         return NotImplemented;
     }
     long* a = (long*)get_primitive(__SELF__);
     long* b = (long*)get_primitive(arg);
-    return new_integer(interpret, *a + *b);
+    return new_integer(*a + *b);
 }
 
-static ClassInstance* __and__(struct Interpretor* interpret, MethodArgs* args){
+static ClassInstance* __and__(MethodArgs* args){
     ClassInstance* arg = __M_ARG__(1); 
     if(!is_int_class(arg)){
         return NotImplemented;
     }
     long* a = (long*)get_primitive(__SELF__);
     long* b = (long*)get_primitive(arg);
-    return new_integer(interpret, *a & *b);
+    return new_integer(*a & *b);
 }
 
-static ClassInstance* __bool__(struct Interpretor* interpret, MethodArgs* args){
+static ClassInstance* __bool__(MethodArgs* args){
     long* a = (long*)get_primitive(__SELF__);
-    return new_bool(interpret, *a);
+    return new_bool(*a);
 }
 
-static ClassInstance* __ceil__(struct Interpretor* interpret, MethodArgs* args){
+static ClassInstance* __ceil__(MethodArgs* args){
     long* a = (long*)get_primitive(__SELF__);
-    return  new_integer(interpret, *a);
+    return  new_integer(*a);
 }
 
-static ClassInstance* __divmod__(struct Interpretor* interpret, MethodArgs* args){ 
-    interpretor_throw_error((Interpretor*)interpret, "divmod not implemeted yet for int");
+static ClassInstance* __divmod__(MethodArgs* args){ 
+    interpretor_throw_error("divmod not implemeted yet for int");
 }
 
 
-static ClassInstance* __eq__(struct Interpretor* interpret, MethodArgs* args){
+static ClassInstance* __eq__(MethodArgs* args){
     ClassInstance* arg = __M_ARG__(1); 
     if(!is_int_class(arg)){
 		return NotImplemented;
     }
     long* a = (long*)get_primitive(__SELF__);
     long* b = (long*)get_primitive(arg);
-    return new_bool(interpret, *a == *b);
+    return new_bool(*a == *b);
 }
 
 
-static ClassInstance* __float__(struct Interpretor* interpret, MethodArgs* args){
+static ClassInstance* __float__(MethodArgs* args){
     long* a = (long*)get_primitive(__SELF__);
-    return new_float(interpret, (double)*a);
+    return new_float((double)*a);
 }
 
-static ClassInstance* __floor__(struct Interpretor* interpret, MethodArgs* args){
+static ClassInstance* __floor__(MethodArgs* args){
     long* a = (long*)get_primitive(__SELF__);
-    return  new_integer(interpret, *a);
+    return  new_integer(*a);
 }
 
-static ClassInstance* __floordiv__(struct Interpretor* interpret, MethodArgs* args){
+static ClassInstance* __floordiv__(MethodArgs* args){
     ClassInstance* arg = __M_ARG__(1); 
     if(!is_int_class(arg)){
 		return NotImplemented;
     }
     long* a = (long*)get_primitive(__SELF__);
     long* b = (long*)get_primitive(arg);
-    return new_integer(interpret, *a / *b);
+    return new_integer(*a / *b);
 }
 
-static ClassInstance* __format__(struct Interpretor* interpret, MethodArgs* args){
-    interpretor_throw_error((Interpretor*)interpret, "format not implemeted yet for int");
+static ClassInstance* __format__(MethodArgs* args){
+    interpretor_throw_error("format not implemeted yet for int");
 }
 
-static ClassInstance* __ge__(struct Interpretor* interpret, MethodArgs* args){
-    ClassInstance* arg = __M_ARG__(1); 
-    if(!is_int_class(arg)){
-		return NotImplemented;
-    }
-
-    long* a = (long*)get_primitive(__SELF__);
-    long* b = (long*)get_primitive(arg);
-    return new_bool(interpret, *a >= *b);
-}
-
-static ClassInstance* __hash__(struct Interpretor* interpret, MethodArgs* args){
-    long* a = (long*)get_primitive(__SELF__);
-    return  new_integer(interpret, *a);
-}
-
-static ClassInstance* __index__(struct Interpretor* interpret, MethodArgs* args){
-    long* a = (long*)get_primitive(__SELF__);
-    return  new_integer(interpret, *a);
-}
-
-static ClassInstance* __int__(struct Interpretor* interpret, MethodArgs* args){
-    long* a = (long*)get_primitive(__SELF__);
-    return  new_integer(interpret, *a);
-}
-
-static ClassInstance* __invert__(struct Interpretor* interpret, MethodArgs* args){
-    long* a = (long*)get_primitive(__SELF__);
-    return  new_integer(interpret, ~(*a));
-}
-
-static ClassInstance* __le__(struct Interpretor* interpret, MethodArgs* args){
+static ClassInstance* __ge__(MethodArgs* args){
     ClassInstance* arg = __M_ARG__(1); 
     if(!is_int_class(arg)){
 		return NotImplemented;
@@ -126,96 +95,127 @@ static ClassInstance* __le__(struct Interpretor* interpret, MethodArgs* args){
 
     long* a = (long*)get_primitive(__SELF__);
     long* b = (long*)get_primitive(arg);
-    return new_bool(interpret, *a <= *b);
+    return new_bool(*a >= *b);
 }
 
-static ClassInstance* __lshift__(struct Interpretor* interpret, MethodArgs* args){
+static ClassInstance* __hash__(MethodArgs* args){
+    long* a = (long*)get_primitive(__SELF__);
+    return  new_integer(*a);
+}
+
+static ClassInstance* __index__(MethodArgs* args){
+    long* a = (long*)get_primitive(__SELF__);
+    return  new_integer(*a);
+}
+
+static ClassInstance* __int__(MethodArgs* args){
+    long* a = (long*)get_primitive(__SELF__);
+    return  new_integer(*a);
+}
+
+static ClassInstance* __invert__(MethodArgs* args){
+    long* a = (long*)get_primitive(__SELF__);
+    return  new_integer(~(*a));
+}
+
+static ClassInstance* __le__(MethodArgs* args){
+    ClassInstance* arg = __M_ARG__(1); 
+    if(!is_int_class(arg)){
+		return NotImplemented;
+    }
+
+    long* a = (long*)get_primitive(__SELF__);
+    long* b = (long*)get_primitive(arg);
+    return new_bool(*a <= *b);
+}
+
+static ClassInstance* __lshift__(MethodArgs* args){
     ClassInstance* arg = __M_ARG__(1); 
     if(!is_int_class(arg)){
 		return NotImplemented;
     }
     long* a = (long*)get_primitive(__SELF__);
     long* b = (long*)get_primitive(arg);
-    return new_integer(interpret, *a << *b);
+    return new_integer(*a << *b);
 }
 
-static ClassInstance* __lt__(struct Interpretor* interpret, MethodArgs* args){
+static ClassInstance* __lt__(MethodArgs* args){
     ClassInstance* arg = __M_ARG__(1); 
     if(!is_int_class(arg)){
 		return NotImplemented;
     }
     long* a = (long*)get_primitive(__SELF__);
     long* b = (long*)get_primitive(arg);
-    return new_bool(interpret, *a < *b);
+    return new_bool(*a < *b);
 }
 
 
-static ClassInstance* __mod__(struct Interpretor* interpret, MethodArgs* args){
+static ClassInstance* __mod__(MethodArgs* args){
     ClassInstance* arg = __M_ARG__(1); 
     if(!is_int_class(arg)){
 		return NotImplemented;
     }
     long* a = (long*)get_primitive(__SELF__);
     long* b = (long*)get_primitive(arg);
-    return new_integer(interpret, *a % *b);
+    return new_integer(*a % *b);
 }
 
 
-static ClassInstance* __mul__(struct Interpretor* interpret, MethodArgs* args){
+static ClassInstance* __mul__(MethodArgs* args){
     ClassInstance* arg = __M_ARG__(1); 
     if(!is_int_class(arg)){
 		return NotImplemented;
     }
     long* a = (long*)get_primitive(__SELF__);
     long* b = (long*)get_primitive(arg);
-    return new_integer(interpret, *a * *b);
+    return new_integer(*a * *b);
 }
 
-static ClassInstance* __ne__(struct Interpretor* interpret, MethodArgs* args){
+static ClassInstance* __ne__(MethodArgs* args){
     ClassInstance* arg = __M_ARG__(1); 
     if(!is_int_class(arg)){
 		return NotImplemented;
     }
     long* a = (long*)get_primitive(__SELF__);
     long* b = (long*)get_primitive(arg);
-    return new_bool(interpret, *a != *b);
+    return new_bool(*a != *b);
 }
 
 
-static ClassInstance* __neg__(struct Interpretor* interpret, MethodArgs* args){
+static ClassInstance* __neg__(MethodArgs* args){
     long* a = (long*)get_primitive(__SELF__);
-    return  new_integer(interpret, -(*a));
+    return  new_integer(-(*a));
 }
 
 
 
-static ClassInstance* __or__(struct Interpretor* interpret, MethodArgs* args){
+static ClassInstance* __or__(MethodArgs* args){
     ClassInstance* arg = __M_ARG__(1); 
     if(!is_int_class(arg)){
 		return NotImplemented;
     }
     long* a = (long*)get_primitive(__SELF__);
     long* b = (long*)get_primitive(arg);
-    return new_integer(interpret, *a | *b);
+    return new_integer(*a | *b);
 }
 
 
-static ClassInstance* __pos__(struct Interpretor* interpret, MethodArgs* args){
+static ClassInstance* __pos__(MethodArgs* args){
     long* a = (long*)get_primitive(__SELF__);
-    return  new_integer(interpret, *a);
+    return  new_integer(*a);
 }
 
-static ClassInstance* __pow__(struct Interpretor* interpret, MethodArgs* args){
+static ClassInstance* __pow__(MethodArgs* args){
     ClassInstance* arg = __M_ARG__(1); 
     if(!is_int_class(arg)){
 		return NotImplemented;
     }
     long* a = (long*)get_primitive(__SELF__);
     long* b = (long*)get_primitive(arg);
-    return new_integer(interpret, powl(*a, *b));
+    return new_integer(powl(*a, *b));
 }
 
-static ClassInstance* __repr__(struct Interpretor* interpret, MethodArgs* args){ 
+static ClassInstance* __repr__(MethodArgs* args){ 
     long* a = (long*)get_primitive(__SELF__);
     int len = 2;
     if(*a > 0){
@@ -226,85 +226,85 @@ static ClassInstance* __repr__(struct Interpretor* interpret, MethodArgs* args){
     String* rep = string_create_with_cap(len);
     int size = snprintf(rep->str, len, "%ld", *a);
     rep->size = size;
-    return new_str(interpret, rep);
+    return new_str(rep);
 }
 
-static ClassInstance* __rshift__(struct Interpretor* interpret, MethodArgs* args){
+static ClassInstance* __rshift__(MethodArgs* args){
     ClassInstance* arg = __M_ARG__(1); 
     if(!is_int_class(arg)){
 		return NotImplemented;
     }
     long* a = (long*)get_primitive(__SELF__);
     long* b = (long*)get_primitive(arg);
-    return new_integer(interpret, *a >> *b);
+    return new_integer(*a >> *b);
 }
 
 
 
-static ClassInstance* __round__(struct Interpretor* interpret, MethodArgs* args){
-    interpretor_throw_error((Interpretor*)interpret, "round not implemeted yet for int");
+static ClassInstance* __round__(MethodArgs* args){
+    interpretor_throw_error("round not implemeted yet for int");
 }
 
-static ClassInstance* __gt__(struct Interpretor* interpret, MethodArgs* args){
+static ClassInstance* __gt__(MethodArgs* args){
     ClassInstance* arg = __M_ARG__(1); 
     if(!is_int_class(arg)){
 		return NotImplemented;
     }
     long* a = (long*)get_primitive(__SELF__);
     long* b = (long*)get_primitive(arg);
-    return new_bool(interpret, *a > *b);
+    return new_bool(*a > *b);
 }
 
-static ClassInstance* __str__(struct Interpretor* interpret, MethodArgs* args){
-    return __repr__(interpret, args);
+static ClassInstance* __str__(MethodArgs* args){
+    return __repr__(args);
 }
 
 
-static ClassInstance* __sub__(struct Interpretor* interpret, MethodArgs* args){
+static ClassInstance* __sub__(MethodArgs* args){
     ClassInstance* arg = __M_ARG__(1); 
     if(!is_int_class(arg)){
 		return NotImplemented;
     }
     long* a = (long*)get_primitive(__SELF__);
     long* b = (long*)get_primitive(arg);
-    return new_integer(interpret, *a - *b);
+    return new_integer(*a - *b);
 }
 
-static ClassInstance* __truediv__(struct Interpretor* interpret, MethodArgs* args){
+static ClassInstance* __truediv__(MethodArgs* args){
     ClassInstance* arg = __M_ARG__(1); 
     if(!is_int_class(arg)){
 		return NotImplemented;
     }
     long* a = (long*)get_primitive(__SELF__);
     long* b = (long*)get_primitive(arg);
-    return new_integer(interpret, (double)*a / (double)*b);
+    return new_integer((double)*a / (double)*b);
 }
 
-static ClassInstance* __trunc__(struct Interpretor* interpret, MethodArgs* args){
+static ClassInstance* __trunc__(MethodArgs* args){
     long* a = (long*)get_primitive(__SELF__);
-    return  new_integer(interpret, *a);
+    return  new_integer(*a);
 }
 
 
-static ClassInstance* __xor__(struct Interpretor* interpret, MethodArgs* args){
+static ClassInstance* __xor__(MethodArgs* args){
     ClassInstance* arg = __M_ARG__(1); 
     if(!is_int_class(arg)){
 		return NotImplemented;
     }
     long* a = (long*)get_primitive(__SELF__);
     long* b = (long*)get_primitive(arg);
-    return new_integer(interpret, *a ^ *b);
+    return new_integer(*a ^ *b);
 }
 
 //Going to define bool methods here to since its a subclass of integer and there aren't many methods 
-static ClassInstance* bool_repr__(struct Interpretor* interpret, MethodArgs* args){
+static ClassInstance* bool_repr__(MethodArgs* args){
     bool* b = (bool*)get_primitive(__SELF__);
-    return new_str(interpret, string_from_str((*b == true) ? "True" : "False"));
+    return new_str(string_from_str((*b == true) ? "True" : "False"));
 }
 
 
 
-void create_int_class(struct Interpretor* interpret){
+void create_int_class(){
     PRIM_TYPE_INT.isNative = true;
     PRIM_TYPE_INT.native = malloc(sizeof(NativeClass));
     PRIM_TYPE_INT.native->superClass = NULL; 
@@ -376,8 +376,8 @@ void create_int_class(struct Interpretor* interpret){
 
     PRIM_TYPE_BOOL.native->methods = bool_methods;
 
-    interpretor_add_class((Interpretor*)interpret, &PRIM_TYPE_INT);
-    interpretor_add_class((Interpretor*)interpret, &PRIM_TYPE_BOOL);
+    interpretor_add_class(&PRIM_TYPE_INT);
+    interpretor_add_class(&PRIM_TYPE_BOOL);
 }
 
 

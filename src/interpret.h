@@ -10,7 +10,6 @@
 #include "object.h"
 #include <stdnoreturn.h>
 
-struct LiteralExpr;
 
 //the standard technically allows up to 255 but 
 //realistically if you use more than like 5 you should consider 
@@ -30,7 +29,7 @@ ClassInstance* func_args_get(FuncArgs* args, int index);
 void func_args_add(FuncArgs* args, ClassInstance* value);
 
 
-typedef ClassInstance* (*NativeMethod)(struct Interpretor*,MethodArgs*);
+typedef ClassInstance* (*NativeMethod)(MethodArgs*);
 
 
 
@@ -57,38 +56,38 @@ typedef struct {
 
 
 
-void interpretor_create_scope(Interpretor* interpret);
+void interpretor_create_scope();
 
-void interpretor_delete_scope(Interpretor* interpret);
+void interpretor_delete_scope();
 
-void interpretor_assign_var(Interpretor *interpret, String* name, ClassInstance* value);
+void interpretor_assign_var(String* name, ClassInstance* value);
 
-ClassInstance* interpretor_get_var(Interpretor *interpret, String* name);
+ClassInstance* interpretor_get_var(String* name);
 
 
-void interpretor_global_var(Interpretor *interpret, String* name);
+void interpretor_global_var(String* name);
 
-void interpretor_del_value(Interpretor *interpret, LiteralExpr* val);
+void interpretor_del_value(LiteralExpr* val);
 
-void interpretor_add_class(Interpretor *interpret, Class* obj);
+void interpretor_add_class(Class* obj);
 
-Class* interpretor_get_class(Interpretor *interpret, String* name);
+Class* interpretor_get_class(String* name);
 
-static inline long interpretor_save_expression(Interpretor *interpret){
-    return allocator_get_offset(&interpret->expressionAllocator);
-}
+void interpretor_set_stmt(Statement* stmt);
 
-static inline void interpretor_restore_expression(Interpretor *interpret, long offset){
-    return allocator_set_offset(&interpret->expressionAllocator, offset);
-}
+ClassInstance* interpretor_alloc_expr(ClassInstance instance);
+
+long interpretor_save_expression();
+
+void interpretor_restore_expression(long offset);
 
 //creates a user defined function 
-void interpretor_create_function(Interpretor *interpret, FunctionStmt* func);
+void interpretor_create_function(FunctionStmt* func);
 
-void interpretor_return(Interpretor* interpret, ClassInstance* value);
+void interpretor_return(ClassInstance* value);
 
-ClassInstance* interpretor_call_function(Interpretor* interpret, String* name, FuncArgs args);
+ClassInstance* interpretor_call_function(String* name, FuncArgs args);
 
-noreturn void interpretor_throw_error(Interpretor *interpret, const char* fmt, ...);
+noreturn void interpretor_throw_error(const char* fmt, ...);
 
 void interpt_stmts(File* file, ArrayList* stmts);

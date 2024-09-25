@@ -226,31 +226,30 @@ typedef struct {
 } MethodArgs;
 
 
-struct Interpretor;
 
-void create_int_class(struct Interpretor* interpret);
+void create_int_class();
 
-void create_str_class(struct Interpretor* interpret);
+void create_str_class();
 
-void create_float_class(struct Interpretor* interpret);
+void create_float_class();
 
-void create_none_class(struct Interpretor* interpret);
+void create_none_class();
 
 void delete_native_class(NativeClass *class);
 
 void delete_class_instance(void* instance);
 
-ClassInstance* call_native_method(struct Interpretor* interpret, ClassInstance* self, const char* name, MethodArgs* args);
+ClassInstance* call_native_method(ClassInstance* self, const char* name, MethodArgs* args);
 
-Class* class_new(struct Interpretor *interpret, String* name, ArrayList super_class);
+Class* class_new(String* name, ArrayList super_class);
 
 
-ClassInstance* new_instance(struct Interpretor* interpret, Class* type, MethodArgs* args);
+ClassInstance* new_instance(Class* type, MethodArgs* args);
 
-ClassInstance* new_float(struct Interpretor* interpret, double val);
+ClassInstance* new_float(double val);
 
-ClassInstance* new_integer(struct Interpretor* interpret, long val);
+ClassInstance* new_integer(long val);
 
-ClassInstance* new_bool(struct Interpretor* interpret, bool val);
+ClassInstance* new_bool(bool val);
 
-ClassInstance* new_str(struct Interpretor* interpret, String* val);
+ClassInstance* new_str(String* val);

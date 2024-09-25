@@ -12,7 +12,7 @@
 
 
 
-static ClassInstance* __add__(struct Interpretor* interpret, MethodArgs* args){
+static ClassInstance* __add__(MethodArgs* args){
    String* a = get_primitive(__SELF__);
 
    ClassInstance* operand = __M_ARG__(1);
@@ -23,50 +23,50 @@ static ClassInstance* __add__(struct Interpretor* interpret, MethodArgs* args){
 
    String* b = get_primitive(operand); 
    String* concated_str = string_concat(a, b);
-   return  new_str(interpret, concated_str);
+   return  new_str(concated_str);
 }
 
 
-static ClassInstance* __eq__(struct Interpretor* interpret, MethodArgs* args){ 
+static ClassInstance* __eq__(MethodArgs* args){ 
    ClassInstance* b = __M_ARG__(1);
    //make sure they both are the same class first 
    if(b->classType != __SELF__->classType){
-        return new_bool(interpret, false); 
+        return new_bool(false); 
    }
 
    String* s1 = get_primitive(__SELF__);
    String* s2 = get_primitive(b);
 
    if(s1->size != s2->size){
-        return new_bool(interpret, false); 
+        return new_bool(false); 
    }
-   return new_bool(interpret,strcmp(s1->str,s2->str) == 0); 
+   return new_bool(strcmp(s1->str,s2->str) == 0); 
 }
 
 
-static ClassInstance* __bool__(struct Interpretor* interpret, MethodArgs* args){
+static ClassInstance* __bool__(MethodArgs* args){
    String* s = get_primitive(__SELF__);
-   return new_bool(interpret, s != NULL && s->size > 0);
+   return new_bool(s != NULL && s->size > 0);
 }
 
 
 
-static ClassInstance* __contains__(struct Interpretor* interpret, MethodArgs* args){
+static ClassInstance* __contains__(MethodArgs* args){
     ClassInstance* arg = __M_ARG__(1);
 
     if(arg->classType != __SELF__->classType){
-        interpretor_throw_error((Interpretor*)interpret, "Invalid type");
+        interpretor_throw_error("Invalid type");
     }
 
     String* s1 = get_primitive(__SELF__);
     String* s2 = get_primitive(arg);
 
-    return new_bool(interpret, strstr(s1->str, s2->str) != NULL);
+    return new_bool(strstr(s1->str, s2->str) != NULL);
 }
 
 
 
-static ClassInstance* __del__(struct Interpretor* interpret, MethodArgs* args){
+static ClassInstance* __del__(MethodArgs* args){
     String* s = get_primitive(__SELF__);
     string_delete(s);
     free(__SELF__);
@@ -75,140 +75,140 @@ static ClassInstance* __del__(struct Interpretor* interpret, MethodArgs* args){
 
 
 
-static ClassInstance* __float__(struct Interpretor* interpret, MethodArgs* args){
+static ClassInstance* __float__(MethodArgs* args){
     String* s = get_primitive(__SELF__);
     errno = 0;
     char* end;
     double res = strtod(s->str, &end);
     if(errno == ERANGE || *end != '\0'){
-        interpretor_throw_error((Interpretor*)interpret, "Invalid float");
+        interpretor_throw_error("Invalid float");
     }
 
-    return new_float(interpret, res);
+    return new_float(res);
 }
 
 
 
-static ClassInstance* __ge__(struct Interpretor* interpret, MethodArgs* args){
+static ClassInstance* __ge__(MethodArgs* args){
     ClassInstance* arg = __M_ARG__(1);
 
     if(arg->classType != __SELF__->classType){
-        interpretor_throw_error((Interpretor*)interpret, "Invalid comparison");
+        interpretor_throw_error("Invalid comparison");
     }
 
     String* s1 = get_primitive(__SELF__);
     String* s2 = get_primitive(arg);
 
-    return new_bool(interpret, strcmp(s1->str, s2->str) >= 0);
+    return new_bool(strcmp(s1->str, s2->str) >= 0);
 }
 
 
-static ClassInstance* __getitem__(struct Interpretor* interpret, MethodArgs* args){
+static ClassInstance* __getitem__(MethodArgs* args){
     ClassInstance* arg = __M_ARG__(1);
     if(!is_int_class(arg)){
-        interpretor_throw_error((Interpretor*)interpret, "Indexing with invalid type");
+        interpretor_throw_error("Indexing with invalid type");
     }
     long* temp = (long*)(get_primitive(arg));
     long index = *temp;
     String* s = get_primitive(__SELF__);
     if(index < 0 || index > s->size - 1){
-        interpretor_throw_error((Interpretor*)interpret, "Index out of Range");
+        interpretor_throw_error("Index out of Range");
     }
     String* new_string = string_create_with_cap(1);
     string_push(&new_string, s->str[index]);
    
-    return new_str(interpret, new_string);
+    return new_str(new_string);
 }
 
 
 
-static ClassInstance* __int__(struct Interpretor* interpret, MethodArgs* args){
+static ClassInstance* __int__(MethodArgs* args){
     String* s = get_primitive(__SELF__);
     errno = 0;
     char* end;
     long res = strtol(s->str, &end, 10);
     if(errno == ERANGE || *end != '\0'){
-        interpretor_throw_error((Interpretor*)interpret, "Invalid integer");
+        interpretor_throw_error("Invalid integer");
     }
-    return new_integer(interpret, res);
+    return new_integer(res);
 }
 
-static ClassInstance* __le__(struct Interpretor* interpret, MethodArgs* args){
+static ClassInstance* __le__(MethodArgs* args){
     ClassInstance* arg = __M_ARG__(1);
 
     if(arg->classType != __SELF__->classType){
-        interpretor_throw_error((Interpretor*)interpret, "Invalid comparison");
+        interpretor_throw_error("Invalid comparison");
     }
 
     String* s1 = get_primitive(__SELF__);
     String* s2 = get_primitive(arg);
 
-    return new_bool(interpret, strcmp(s1->str, s2->str) <= 0);
+    return new_bool(strcmp(s1->str, s2->str) <= 0);
 }
 
-static ClassInstance* __len__(struct Interpretor* interpret, MethodArgs* args){
+static ClassInstance* __len__(MethodArgs* args){
     String* s = get_primitive(__SELF__);
-    return new_integer(interpret, s->size);
+    return new_integer(s->size);
 }
 
-static ClassInstance* __lt__(struct Interpretor* interpret, MethodArgs* args){
+static ClassInstance* __lt__(MethodArgs* args){
     ClassInstance* arg = __M_ARG__(1);
 
     if(arg->classType != __SELF__->classType){
-        interpretor_throw_error((Interpretor*)interpret, "Invalid comparison");
+        interpretor_throw_error("Invalid comparison");
     }
 
     String* s1 = get_primitive(__SELF__);
     String* s2 = get_primitive(arg);
 
-    return new_bool(interpret, strcmp(s1->str, s2->str) < 0);
+    return new_bool(strcmp(s1->str, s2->str) < 0);
 }
 
-static ClassInstance* __mul__(struct Interpretor* interpret, MethodArgs* args){
+static ClassInstance* __mul__(MethodArgs* args){
     ClassInstance* arg = __M_ARG__(1);
 
     if(!is_int_class(arg)){ 
-        interpretor_throw_error((Interpretor*)interpret, "Invalid Type");
+        interpretor_throw_error("Invalid Type");
     }
     String* s1 = get_primitive(__SELF__);
     long* times = get_primitive(arg);
     String* result = string_multiply(s1, (uint32_t)(*times));
-    return new_str(interpret, result);
+    return new_str(result);
 }
 
-static ClassInstance* __ne__(struct Interpretor* interpret, MethodArgs* args) {
-    ClassInstance* b = __eq__(interpret,  args);
+static ClassInstance* __ne__(MethodArgs* args) {
+    ClassInstance* b = __eq__( args);
     bool* equal = get_primitive(b);
     *equal = !(*equal);
     return b;
 }
 
 
-static ClassInstance* __gt__(struct Interpretor* interpret, MethodArgs* args){
+static ClassInstance* __gt__(MethodArgs* args){
     ClassInstance* arg = __M_ARG__(1);
 
     if(arg->classType != __SELF__->classType){
-        interpretor_throw_error((Interpretor*)interpret, "Invalid comparison");
+        interpretor_throw_error("Invalid comparison");
     }
 
     String* s1 = get_primitive(__SELF__);
     String* s2 = get_primitive(arg);
 
-    return new_bool(interpret, strcmp(s1->str, s2->str) > 0);
+    return new_bool(strcmp(s1->str, s2->str) > 0);
 }
 
 
 
-static ClassInstance* __repr__(struct Interpretor* interpret, MethodArgs* args){
+static ClassInstance* __repr__(MethodArgs* args){
     String* s = get_primitive(__SELF__);
-    return new_str(interpret, string_copy(s));
+    return new_str(string_copy(s));
 }
 
 
 
 
 
-void create_str_class(struct Interpretor* interpret){
+void create_str_class(){
     PRIM_TYPE_STR.isNative = true;
     PRIM_TYPE_STR.native = malloc(sizeof(NativeClass));
     PRIM_TYPE_STR.native->superClass = NULL; 
@@ -238,7 +238,7 @@ void create_str_class(struct Interpretor* interpret){
     ADD_NATIVE_METHOD(list,__GT__,__gt__, 2, true);
     PRIM_TYPE_STR.native->methods = list;
 
-    interpretor_add_class((Interpretor*)interpret, &PRIM_TYPE_STR);
+    interpretor_add_class(&PRIM_TYPE_STR);
 }
 
 

@@ -21,10 +21,31 @@
 
 #define MAX_SCOPE_DEPTH 255 
 
-noreturn void interpretor_throw_error(Interpretor *interpret, const char* fmt, ...) {
+
+static Interpretor interpret = {0};
+
+//THESE ARE TEMP FUNCTIONS THAT WILL LIKELY GET DEPRECATED SOON
+long interpretor_save_expression(){
+    return allocator_get_offset(&interpret.expressionAllocator);
+}
+
+void interpretor_restore_expression(long offset){
+    return allocator_set_offset(&interpret.expressionAllocator, offset);
+}
+
+void interpretor_set_stmt(Statement* stmt){
+    interpret.currentStmt = stmt;
+}
+
+ClassInstance* interpretor_alloc_expr(ClassInstance instance){
+    allocator_add(&interpret.expressionAllocator, instance, ClassInstance);
+    return allocator_peek(&interpret.expressionAllocator);
+}
+
+noreturn void interpretor_throw_error(const char* fmt, ...) {
     fprintf(stderr, "Error: \n");
-    if(interpret->currentStmt != NULL){
-        file_eprint_line(interpret->f, interpret->currentStmt->line);
+    if(interpret.currentStmt != NULL){
+        file_eprint_line(interpret.f, interpret.currentStmt->line);
     }
     va_list list;
     va_start(list, fmt);
@@ -43,39 +64,39 @@ typedef struct {
 } Scope;
 
 
-void interpretor_create_scope(Interpretor* interpret){
-    if(interpret->stackFrames->size == MAX_SCOPE_DEPTH - 1){
-        interpretor_throw_error(interpret, "Maximum scope depth of %d exceeded\n", MAX_SCOPE_DEPTH);
+void interpretor_create_scope(){
+    if(interpret.stackFrames->size == MAX_SCOPE_DEPTH - 1){
+        interpretor_throw_error("Maximum scope depth of %d exceeded\n", MAX_SCOPE_DEPTH);
     }
     Scope* result = malloc(sizeof(Scope));
-    if(result == NULL) interpretor_throw_error(interpret, "Out of memory error\n");
+    if(result == NULL) interpretor_throw_error("Out of memory error\n");
     //create global scope 
-    if(stack_is_empty(interpret->stackFrames)){
+    if(stack_is_empty(interpret.stackFrames)){
         allocator_create(&result->alloc, sizeof(ClassInstance), 32);
         result->variables = hash_map_create(32, delete_class_instance);
-        result->expressionOffset = interpretor_save_expression(interpret);
-        stack_push(interpret->stackFrames, Scope*, result);
+        result->expressionOffset = interpretor_save_expression();
+        stack_push(interpret.stackFrames, Scope*, result);
     } else{
         allocator_create(&result->alloc, sizeof(ClassInstance), 10);
         result->variables = hash_map_create(10, delete_class_instance); 
-        result->expressionOffset = interpretor_save_expression(interpret);
-        stack_push(interpret->stackFrames, Scope*, result);
+        result->expressionOffset = interpretor_save_expression();
+        stack_push(interpret.stackFrames, Scope*, result);
     }
 }
 
-void interpretor_delete_scope(Interpretor* interpret){
-    if(stack_is_empty(interpret->stackFrames)) return;
-    Scope* s = stack_pop(interpret->stackFrames, Scope*);
+void interpretor_delete_scope(){
+    if(stack_is_empty(interpret.stackFrames)) return;
+    Scope* s = stack_pop(interpret.stackFrames, Scope*);
     hash_map_delete(s->variables);
-    interpretor_restore_expression(interpret, s->expressionOffset);
+    interpretor_restore_expression(s->expressionOffset);
     allocator_delete(&s->alloc);
     free(s);
 } 
 
-void interpretor_assign_var(Interpretor *interpret, String* name, ClassInstance* value){
+void interpretor_assign_var(String* name, ClassInstance* value){
  
     //check if the variable exists first
-    Scope* local_scope = stack_peek(interpret->stackFrames, Scope*);
+    Scope* local_scope = stack_peek(interpret.stackFrames, Scope*);
     void* existing_value = hash_map_get_value(local_scope->variables, name->str);
     if(existing_value != NULL){
         memcpy(existing_value, value, sizeof(ClassInstance));
@@ -91,24 +112,24 @@ void interpretor_assign_var(Interpretor *interpret, String* name, ClassInstance*
 
 
 
-ClassInstance* interpretor_get_var(Interpretor *interpret, String* name){ 
-    Scope* local_scope = stack_peek(interpret->stackFrames, Scope*);
+ClassInstance* interpretor_get_var(String* name){ 
+    Scope* local_scope = stack_peek(interpret.stackFrames, Scope*);
     ClassInstance* value = hash_map_get_value(local_scope->variables, name->str);
     if(value != NULL && value != NotImplemented){ 
         return value;     
     } 
-    interpretor_throw_error(interpret, "Variable %s not defined\n", name->str);
+    interpretor_throw_error("Variable %s not defined\n", name->str);
 }
 
 
-void interpretor_global_var(Interpretor *interpret, String* name){
-    Scope* local_scope = stack_peek(interpret->stackFrames, Scope*);
+void interpretor_global_var(String* name){
+    Scope* local_scope = stack_peek(interpret.stackFrames, Scope*);
     ClassInstance* value = hash_map_get_value(local_scope->variables, name->str);
     if(value != NULL){
-        interpretor_throw_error(interpret, "%s assigned before global declaration", name->str);
+        interpretor_throw_error("%s assigned before global declaration", name->str);
     }
 
-    Scope* global_scope = array_list_get(interpret->stackFrames, Scope*, 0);
+    Scope* global_scope = array_list_get(interpret.stackFrames, Scope*, 0);
     value = hash_map_get_value(global_scope->variables, name->str);
 
     //if the variable doesn't exist, declare in the global scope 
@@ -126,12 +147,12 @@ void interpretor_global_var(Interpretor *interpret, String* name){
     }    
 }
 
-void interpretor_del_value(Interpretor *interpret, LiteralExpr* val){
+void interpretor_del_value(LiteralExpr* val){
     if(val->litType != LIT_IDENTIFIER){
-        interpretor_throw_error(interpret, "Cannot delete: %s", get_literal_type(val));
+        interpretor_throw_error("Cannot delete: %s", get_literal_type(val));
     }
-    Scope* local_scope = stack_peek(interpret->stackFrames, Scope*);
-    Scope* global_scope = array_list_get(interpret->stackFrames, Scope*, 0);
+    Scope* local_scope = stack_peek(interpret.stackFrames, Scope*);
+    Scope* global_scope = array_list_get(interpret.stackFrames, Scope*, 0);
     ClassInstance* value = hash_map_delete_entry(local_scope->variables, val->identifier->str);
 
     if(local_scope != global_scope){
@@ -143,7 +164,7 @@ void interpretor_del_value(Interpretor *interpret, LiteralExpr* val){
         }
     }
 
-    if(value == NULL) interpretor_throw_error(interpret, "%s not defined", val->identifier->str);
+    if(value == NULL) interpretor_throw_error("%s not defined", val->identifier->str);
 }
 
 
@@ -157,7 +178,7 @@ void func_args_add(FuncArgs* args, ClassInstance* value){
 }
 
 
-typedef ClassInstance* (*NativeFunc)(Interpretor*, FuncArgs*);
+typedef ClassInstance* (*NativeFunc)(FuncArgs*);
 
 typedef struct {
     ArrayList* args;
@@ -181,13 +202,13 @@ static void delete_funcions(void* variable){
 
 
 
-void interpretor_create_function(Interpretor *interpret, FunctionStmt* func) {
+void interpretor_create_function(FunctionStmt* func) {
    Function* funcdef = malloc(sizeof(Function));
    funcdef->argCount = array_list_size(func->parameters);
    funcdef->isNative = false;
    funcdef->funcBody.user.body = (BlockStmt*)func->body;
    funcdef->funcBody.user.args = func->parameters;
-   hash_map_add_entry(interpret->functions, func->identifier->str, funcdef);
+   hash_map_add_entry(interpret.functions, func->identifier->str, funcdef);
 }
 
 
@@ -199,85 +220,85 @@ void create_native_func(HashMap *map, const char* name, int argCount, NativeFunc
     hash_map_add_entry(map, name, funcdef);
 }
 
-void create_functions(Interpretor* interpret){
-    interpret->functions = hash_map_create(30, delete_funcions);
-    create_native_func(interpret->functions, "print", 1, print);
-    create_native_func(interpret->functions, "abs", 1, _abs);
-    create_native_func(interpret->functions, "bin", 1, bin);
-    create_native_func(interpret->functions, "bool", 1, _bool);
-    create_native_func(interpret->functions, "float", 1, _float);
-    create_native_func(interpret->functions, "hex", 1, hex);
-    create_native_func(interpret->functions, "input", 1, input);
-    create_native_func(interpret->functions, "int", 1, _int);
-    create_native_func(interpret->functions, "len", 1, len);
+void create_functions(){
+    interpret.functions = hash_map_create(30, delete_funcions);
+    create_native_func(interpret.functions, "print", 1, print);
+    create_native_func(interpret.functions, "abs", 1, _abs);
+    create_native_func(interpret.functions, "bin", 1, bin);
+    create_native_func(interpret.functions, "bool", 1, _bool);
+    create_native_func(interpret.functions, "float", 1, _float);
+    create_native_func(interpret.functions, "hex", 1, hex);
+    create_native_func(interpret.functions, "input", 1, input);
+    create_native_func(interpret.functions, "int", 1, _int);
+    create_native_func(interpret.functions, "len", 1, len);
 }
 
-void interpretor_return(Interpretor* interpret, ClassInstance* value){
-    Scope* local_scope = stack_peek(interpret->stackFrames, Scope*);
+void interpretor_return(ClassInstance* value){
+    Scope* local_scope = stack_peek(interpret.stackFrames, Scope*);
     //bring the expression allocator back to where it was before we called the function 
-    interpretor_restore_expression(interpret, local_scope->expressionOffset);
+    interpretor_restore_expression(local_scope->expressionOffset);
     //push the return value to the top of the expression stack 
-    allocator_add(&interpret->expressionAllocator, *value, ClassInstance);
+    allocator_add(&interpret.expressionAllocator, *value, ClassInstance);
     //account for the new return value 
     //once the scope gets deleted the return value will be on top of the stack 
-    local_scope->expressionOffset += interpret->expressionAllocator.obj_size;
+    local_scope->expressionOffset += interpret.expressionAllocator.obj_size;
     longjmp(local_scope->start, 1);
 }
 
-ClassInstance* interpretor_call_function(Interpretor* interpret, String* name, FuncArgs args){
-    Function* func = hash_map_get_value(interpret->functions, name->str); 
-    if(func == NULL) interpretor_throw_error(interpret, "Function %s not defined\n", name->str);
+ClassInstance* interpretor_call_function(String* name, FuncArgs args){
+    Function* func = hash_map_get_value(interpret.functions, name->str); 
+    if(func == NULL) interpretor_throw_error("Function %s not defined\n", name->str);
     if(args.count != func->argCount){
         fprintf(stderr, "Invalid args expected %d, got %d\n", func->argCount, args.count);
         exit(1);
     }
 
     if(func->isNative){
-        return func->funcBody.native(interpret, &args);
+        return func->funcBody.native(&args);
     }
 
-    interpretor_create_scope(interpret);
-    Scope* local_scope = stack_peek(interpret->stackFrames, Scope*);
+    interpretor_create_scope();
+    Scope* local_scope = stack_peek(interpret.stackFrames, Scope*);
     ClassInstance* result = None;
     if(setjmp(local_scope->start) == 0){
         //assign the args to the local scope 
         for(int i = 0; i < args.count; i++){
             String* arg_name = array_list_get(func->funcBody.user.args, String*, i);
             ClassInstance* value = args.args[i];
-            interpretor_assign_var(interpret, arg_name, value);
+            interpretor_assign_var(arg_name, value);
         }
 
         //execute the body of the function 
         ArrayList* body_stmts = func->funcBody.user.body->statements;
         for(int i = 0; i < array_list_size(body_stmts); i++){
             Statement* current_stmt = array_list_get(body_stmts,Statement*, i);
-            interpret->currentStmt = current_stmt;
-            evaluate_statement(interpret, current_stmt);
+            interpret.currentStmt = current_stmt;
+            evaluate_statement(current_stmt);
         }
     } else{
         //indicates an explicate return statement
         //return value is at the top of the expression allocator stack 
-        result = allocator_peek(&interpret->expressionAllocator);
+        result = allocator_peek(&interpret.expressionAllocator);
     }
-    interpretor_delete_scope(interpret); 
+    interpretor_delete_scope(); 
     return result;
 }
 
 
 
-void interpretor_add_class(Interpretor *interpret, Class* obj){
+void interpretor_add_class(Class* obj){
     if(obj->isNative){
-        hash_map_add_entry(interpret->classes, obj->native->name, obj);
+        hash_map_add_entry(interpret.classes, obj->native->name, obj);
     } else{
-        hash_map_add_entry(interpret->classes, obj->user->name->str, obj);
+        hash_map_add_entry(interpret.classes, obj->user->name->str, obj);
     }
 }
 
 
-Class* interpretor_get_class(Interpretor *interpret, String* name){
-    Class* c = hash_map_get_value(interpret->classes, name->str);
+Class* interpretor_get_class(String* name){
+    Class* c = hash_map_get_value(interpret.classes, name->str);
     if(c == NULL){
-        interpretor_throw_error(interpret, "Class %s not defined\n", name->str);
+        interpretor_throw_error("Class %s not defined\n", name->str);
     }
     return c;
 }
@@ -324,28 +345,27 @@ static void delete_classes(void* class){
 
 
 void interpt_stmts(File* file, ArrayList* stmts){
-    Interpretor interpret = {0};
     interpret.f = file;
     //call stack is going to be 255 for now
     stack_create(interpret.stackFrames, Scope*, MAX_SCOPE_DEPTH);
-    interpretor_create_scope(&interpret);
+    interpretor_create_scope();
     allocator_create(&interpret.expressionAllocator, sizeof(ClassInstance), 64);
     allocator_create(&interpret.functionAllocator, sizeof(Function), 20);
     allocator_create(&interpret.methodAllocator, sizeof(Method), 100);
-    create_functions(&interpret);
+    create_functions();
 
     interpret.classes = hash_map_create(20, delete_classes);
 
-    create_int_class((struct Interpretor*)&interpret);
-    create_float_class((struct Interpretor*)&interpret);
-    create_none_class((struct Interpretor*)&interpret);
-    create_str_class((struct Interpretor*)&interpret);
+    create_int_class();
+    create_float_class();
+    create_none_class();
+    create_str_class();
 
 
     for(int i = 0; i < array_list_size(stmts); i++){
         Statement* current_stmt = array_list_get(stmts, Statement*, i);
         interpret.currentStmt = current_stmt;
-        evaluate_statement(&interpret, current_stmt);
+        evaluate_statement(current_stmt);
     }
 
 
@@ -359,7 +379,7 @@ void interpt_stmts(File* file, ArrayList* stmts){
     }
     array_list_delete(stmts);
     while(!stack_is_empty(interpret.stackFrames)){
-        interpretor_delete_scope(&interpret);
+        interpretor_delete_scope();
     }
     stack_delete(interpret.stackFrames);
     allocator_delete(&interpret.expressionAllocator);

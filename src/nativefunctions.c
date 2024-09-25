@@ -11,7 +11,7 @@
 
 #define arg(index) func_args_get(args, index)
 
-ClassInstance* print(Interpretor *interpret, FuncArgs* args){
+ClassInstance* print(FuncArgs* args){
     ClassInstance* val = arg(0);
     if(val == NULL){
         printf("None\n");
@@ -20,8 +20,8 @@ ClassInstance* print(Interpretor *interpret, FuncArgs* args){
         a.args[0] = val;
         a.count = 1;
         a.self = true;
-        ClassInstance* str = call_native_method((struct Interpretor*)interpret, val, __REPR__, &a);
-        if(str == NotImplemented) interpretor_throw_error(interpret, "Invalid operand for print(): %s", class_get_name(val));
+        ClassInstance* str = call_native_method(val, __REPR__, &a);
+        if(str == NotImplemented) interpretor_throw_error("Invalid operand for print(): %s", class_get_name(val));
         printf("%s\n", str->pstr->str);
         string_delete(str->pstr);
     }
@@ -30,7 +30,7 @@ ClassInstance* print(Interpretor *interpret, FuncArgs* args){
 
 
 //returns the absolute value of a number
-ClassInstance* _abs(Interpretor *interpret, FuncArgs* args){ 
+ClassInstance* _abs(FuncArgs* args){ 
     ClassInstance* val = arg(0);
     if(val == NULL){
         goto INVALID_ARG;
@@ -39,26 +39,26 @@ ClassInstance* _abs(Interpretor *interpret, FuncArgs* args){
         a.args[0] = val;
         a.count = 1;
         a.self = true;
-        ClassInstance* res = call_native_method((struct Interpretor*)interpret, val, __ABS__, &a);
+        ClassInstance* res = call_native_method(val, __ABS__, &a);
         if(res == NotImplemented) goto INVALID_ARG;
         return res;
     } 
     INVALID_ARG:
-        interpretor_throw_error(interpret, "Invalid operand for abs(): %s", class_get_name(val));
+        interpretor_throw_error("Invalid operand for abs(): %s", class_get_name(val));
 }
 
-ClassInstance* all(Interpretor *interpret, FuncArgs* args);
+ClassInstance* all(FuncArgs* args);
 
-ClassInstance* any(Interpretor *interpret, FuncArgs* args);
+ClassInstance* any(FuncArgs* args);
 
-ClassInstance* ascii(Interpretor *interpret, FuncArgs* args);
+ClassInstance* ascii(FuncArgs* args);
 
-ClassInstance* bin(Interpretor *interpret, FuncArgs* args){
+ClassInstance* bin(FuncArgs* args){
     ClassInstance* val = arg(0); 
     if(!is_int_class(val)){
         //TODO: CHECK FOR INDEX METHOD
         //
-        interpretor_throw_error(interpret, "Invalid operand for bin()");
+        interpretor_throw_error("Invalid operand for bin()");
     }
     long* p_integer = get_primitive(val);
     long integer = *p_integer;
@@ -77,10 +77,10 @@ ClassInstance* bin(Interpretor *interpret, FuncArgs* args){
         char c = ((integer >> (bits - 1 - i)) & 1) ? '1' : '0';
         string_push(&bin_str, c);
     }
-    return new_str((struct Interpretor*)interpret, bin_str);
+    return new_str(bin_str);
 }
 
-ClassInstance* _bool(Interpretor *interpret, FuncArgs* args) { 
+ClassInstance* _bool(FuncArgs* args) { 
     ClassInstance* val =  arg(0);
     if(val == NULL){
         goto INVALID_ARG;
@@ -89,23 +89,23 @@ ClassInstance* _bool(Interpretor *interpret, FuncArgs* args) {
         a.args[0] = val;
         a.count = 1;
         a.self = true;
-        ClassInstance* res = call_native_method((struct Interpretor*)interpret, val, __BOOL__, &a);
+        ClassInstance* res = call_native_method(val, __BOOL__, &a);
         if(res == NotImplemented) goto INVALID_ARG;
         return res;
     } 
     INVALID_ARG:
-        interpretor_throw_error(interpret, "Invalid operand for bool()");
+        interpretor_throw_error("Invalid operand for bool()");
 }
 
-ClassInstance* bytearray(Interpretor *interpret, FuncArgs* args);
+ClassInstance* bytearray(FuncArgs* args);
 
-ClassInstance* bytes(Interpretor *interpret, FuncArgs* args);
+ClassInstance* bytes(FuncArgs* args);
 
-ClassInstance* callable(Interpretor *interpret, FuncArgs* args);
+ClassInstance* callable(FuncArgs* args);
 
-ClassInstance* chr(Interpretor *interpret, FuncArgs* args);
+ClassInstance* chr(FuncArgs* args);
 
-ClassInstance* _float(Interpretor *interpret, FuncArgs* args){
+ClassInstance* _float(FuncArgs* args){
     ClassInstance* val =  arg(0);
     if(val == NULL){
         goto INVALID_ARG;
@@ -114,23 +114,23 @@ ClassInstance* _float(Interpretor *interpret, FuncArgs* args){
         a.args[0] = val;
         a.count = 1;
         a.self = true;
-        ClassInstance* res = call_native_method((struct Interpretor*)interpret, val, __FLOAT__, &a);
+        ClassInstance* res = call_native_method(val, __FLOAT__, &a);
         if(res == NotImplemented) goto INVALID_ARG;
         return res;
     } 
     INVALID_ARG:     
-        interpretor_throw_error(interpret, "Invalid operand for float()");
+        interpretor_throw_error("Invalid operand for float()");
 }
 
-ClassInstance* format(Interpretor *interpret, FuncArgs* args);
+ClassInstance* format(FuncArgs* args);
 
-ClassInstance* hash(Interpretor *interpret, FuncArgs* args);
+ClassInstance* hash(FuncArgs* args);
 
-ClassInstance* hex(Interpretor *interpret, FuncArgs* args) {
+ClassInstance* hex(FuncArgs* args) {
     ClassInstance* val =  arg(0);
     if(!is_int_class(val)){
         //TODO: CHECK FOR INDEX METHOD
-        interpretor_throw_error(interpret, "Invalid operand for hex(): %s\n");
+        interpretor_throw_error("Invalid operand for hex(): %s\n");
     }
     long* p_integer = get_primitive(val);
     long integer = *p_integer;
@@ -145,15 +145,15 @@ ClassInstance* hex(Interpretor *interpret, FuncArgs* args) {
     }
     int num_digits = sprintf(&hex_str->str[hex_str->size], "0x%lx",integer);
     hex_str->size += num_digits;
-    return new_str((struct Interpretor*)interpret, hex_str);  
+    return new_str(hex_str);  
 }
 
-ClassInstance* id(Interpretor *interpret, FuncArgs* args);
+ClassInstance* id(FuncArgs* args);
 
-ClassInstance* input(Interpretor *interpret, FuncArgs* args){
+ClassInstance* input(FuncArgs* args){
     ClassInstance* val = arg(0);
     if(val == NULL || val->classType != &PRIM_TYPE_STR){ 
-        interpretor_throw_error(interpret, "Invalid operand for input()");
+        interpretor_throw_error("Invalid operand for input()");
     }
 
     printf("%s", val->pstr->str);
@@ -164,11 +164,11 @@ ClassInstance* input(Interpretor *interpret, FuncArgs* args){
         if(c == EOF || c == '\n') break;
         string_push(&result_string, c);
     }
-    return new_str((struct Interpretor*)interpret, result_string);
+    return new_str(result_string);
 }
 
 
-ClassInstance* _int(Interpretor *interpret, FuncArgs* args){
+ClassInstance* _int(FuncArgs* args){
     ClassInstance* val =  arg(0);
     if(val == NULL){
         goto INVALID_ARG;
@@ -177,15 +177,15 @@ ClassInstance* _int(Interpretor *interpret, FuncArgs* args){
         a.args[0] = val;
         a.count = 1;
         a.self = true;
-        ClassInstance* res = call_native_method((struct Interpretor*)interpret, val, __INT__, &a);
+        ClassInstance* res = call_native_method(val, __INT__, &a);
         if(res == NotImplemented) goto INVALID_ARG;
         return res;
     } 
     INVALID_ARG:     
-        interpretor_throw_error(interpret, "Invalid operand for int()");
+        interpretor_throw_error("Invalid operand for int()");
 }
 
-ClassInstance* len(Interpretor *interpret, FuncArgs* args){ 
+ClassInstance* len(FuncArgs* args){ 
     ClassInstance* val =  arg(0);
     if(val == NULL){
         goto INVALID_ARG;
@@ -194,21 +194,21 @@ ClassInstance* len(Interpretor *interpret, FuncArgs* args){
         a.args[0] = val;
         a.count = 1;
         a.self = true;
-        ClassInstance* res = call_native_method((struct Interpretor*)interpret, val, __LEN__, &a);
+        ClassInstance* res = call_native_method(val, __LEN__, &a);
         if(res == NotImplemented) goto INVALID_ARG;
         return res;
     } 
     INVALID_ARG:     
-        interpretor_throw_error(interpret, "Invalid operand for len()");
+        interpretor_throw_error("Invalid operand for len()");
 }
 
-ClassInstance* open(Interpretor *interpret, FuncArgs* args);
+ClassInstance* open(FuncArgs* args);
 
-ClassInstance* _round(Interpretor *interpret, FuncArgs* args);
+ClassInstance* _round(FuncArgs* args);
 
-ClassInstance* sorted(Interpretor *interpret, FuncArgs* args);
+ClassInstance* sorted(FuncArgs* args);
 
-ClassInstance* type(Interpretor *interpret, FuncArgs* args);
+ClassInstance* type(FuncArgs* args);
 
 
 

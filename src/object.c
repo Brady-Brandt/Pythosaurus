@@ -1,5 +1,4 @@
 #include "object.h"
-#include "allocator.h"
 #include "arraylist.h"
 #include "hashmap.h"
 #include "interpret.h"
@@ -116,14 +115,14 @@ const char* class_get_name(ClassInstance* self){
 } 
 
 
-ClassInstance* call_native_method(struct Interpretor* interpret, ClassInstance* self, const char* name, MethodArgs* args){
+ClassInstance* call_native_method(ClassInstance* self, const char* name, MethodArgs* args){
     ArrayList* methods = self->classType->native->methods;
     for(int i = 0; i < methods->size; i++){
         NativeMethodInfo m = array_list_get(methods, NativeMethodInfo, i);
         //can just compare pointers 
         //since we use the same ptr for all native dunder methods 
         if(name == m.name){
-            return m.method(interpret, args);
+            return m.method(args);
         }
     }
 
@@ -136,7 +135,7 @@ ClassInstance* call_native_method(struct Interpretor* interpret, ClassInstance* 
             for(int i = 0; i < methods->size; i++){
                 NativeMethodInfo m = array_list_get(methods, NativeMethodInfo, i);
                 if(name == m.name){
-                    return m.method(interpret, args);
+                    return m.method(args);
                 }
             }
         }
@@ -168,28 +167,28 @@ void delete_class_instance(void* instance){
 }
 
 
-static ClassInstance* repr_none(struct Interpretor* interpret, MethodArgs* args){
-    return new_str(interpret, string_from_str("None"));
+static ClassInstance* repr_none(MethodArgs* args){
+    return new_str(string_from_str("None"));
 }
 
-static ClassInstance* eq_none(struct Interpretor* interpret, MethodArgs* args){
-    return new_bool(interpret, __SELF__->classType == args->args[0]->classType);
+static ClassInstance* eq_none(MethodArgs* args){
+    return new_bool(__SELF__->classType == args->args[0]->classType);
 }
 
-static ClassInstance* ne_none(struct Interpretor* interpret, MethodArgs* args){
-    return new_bool(interpret, __SELF__->classType != args->args[0]->classType);
+static ClassInstance* ne_none(MethodArgs* args){
+    return new_bool(__SELF__->classType != args->args[0]->classType);
 }
 
-static ClassInstance* hash_none(struct Interpretor* interpret, MethodArgs* args){
-    return new_integer(interpret, (long)None);
+static ClassInstance* hash_none(MethodArgs* args){
+    return new_integer((long)None);
 }
 
-static ClassInstance* repr_notimplemeted(struct Interpretor* interpret, MethodArgs* args){
-    return new_str(interpret, string_from_str("NotImplemeted"));
+static ClassInstance* repr_notimplemeted(MethodArgs* args){
+    return new_str(string_from_str("NotImplemeted"));
 }
 
 
-void create_none_class(struct Interpretor* interpret){
+void create_none_class(){
     PRIM_TYPE_NONE.isNative = true;
     PRIM_TYPE_NONE.native = malloc(sizeof(NativeClass));
     PRIM_TYPE_NONE.native->superClass = NULL; 
@@ -237,51 +236,44 @@ void create_none_class(struct Interpretor* interpret){
     __NotImplemented__.refCount = LONG_MAX;
 
 
-    interpretor_add_class((Interpretor*)interpret, &PRIM_TYPE_NONE);
-    interpretor_add_class((Interpretor*)interpret, &PRIM_TYPE_NOT_IMPLEMENTED);
+    interpretor_add_class(&PRIM_TYPE_NONE);
+    interpretor_add_class(&PRIM_TYPE_NOT_IMPLEMENTED);
 }
 
 
 
-#define RETURN_NEW_IMMUTABLE_TYPE(interpret, val) \
-    do { \
-        Interpretor* inter = (Interpretor*)interpret; \
-        allocator_add(&inter->expressionAllocator, val, ClassInstance); \
-        return allocator_peek(&inter->expressionAllocator); \
-    } while(0)
-
-ClassInstance* new_float(struct Interpretor* interpret, double val){
+ClassInstance* new_float(double val){
     ClassInstance result = {0};
     result.pfloat = val;
     result.refCount = 1;
     result.classType = &PRIM_TYPE_FLOAT;
-    RETURN_NEW_IMMUTABLE_TYPE(interpret, result);
+    return interpretor_alloc_expr(result);
 }
 
-ClassInstance* new_integer(struct Interpretor* interpret, long val){
+ClassInstance* new_integer(long val){
     ClassInstance result = {0};
     result.pint = val;
     result.refCount = 1;
     result.classType = &PRIM_TYPE_INT;
-    RETURN_NEW_IMMUTABLE_TYPE(interpret, result);
+    return interpretor_alloc_expr(result);
 }
 
 
-ClassInstance* new_bool(struct Interpretor* interpret, bool val){ 
+ClassInstance* new_bool(bool val){ 
     ClassInstance result = {0}; 
     result.pbool = val;
     result.refCount = 1;
     result.classType = &PRIM_TYPE_BOOL;
-    RETURN_NEW_IMMUTABLE_TYPE(interpret, result);
+    return interpretor_alloc_expr(result);
 }
 
 
-ClassInstance* new_str(struct Interpretor* interpret, String* val){
+ClassInstance* new_str(String* val){
     ClassInstance result = {0};
     result.pstr = val;
     result.refCount = 1;
     result.classType = &PRIM_TYPE_STR;
-    RETURN_NEW_IMMUTABLE_TYPE(interpret, result);
+    return interpretor_alloc_expr(result);
 }
 
 
