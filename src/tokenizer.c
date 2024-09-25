@@ -2,6 +2,7 @@
 #include "arraylist.h"
 #include "stringtype.h"
 #include "file.h"
+#include "arena.h"
 
 
 #include <ctype.h>
@@ -17,7 +18,6 @@ typedef struct {
    File* file;
    char currentChar;
    char prevChar;
-   String* currentString;
 } Tokenizer;
 
 
@@ -27,14 +27,8 @@ static void tokenizer_create(Tokenizer *tokenizer, File* file){
     tokenizer->file = file;
     tokenizer->currentChar = '\0';
     tokenizer->prevChar = '\0';
-    tokenizer->currentString = string_create();
 }
 
-
-static ArrayList* delete_tokenizer(Tokenizer *tokenizer){
-    string_delete(tokenizer->currentString);
-    return tokenizer->tokens;
-}
 
 static char next_char(Tokenizer *tokenizer){
     tokenizer->prevChar = tokenizer->currentChar;
@@ -68,10 +62,12 @@ static void add_token(Tokenizer *tokenizer, TokenType type){
         case TOK_IDENTIFIER:
         case TOK_FLOAT:
         case TOK_STRING:
-        case TOK_INTEGER: 
-            token.literal = string_from_str(tokenizer->currentString->str); 
-            string_clear(tokenizer->currentString);
+        case TOK_INTEGER: {
+            const char* temp = (const char*)scratch_buffer_as_str();
+            token.literal = string_from_str(temp); 
+            scratch_buffer_clear();
             break;
+        }
         default: 
             token.literal = NULL; 
     }
@@ -84,7 +80,7 @@ static void add_token(Tokenizer *tokenizer, TokenType type){
  * Determine if the string is a keyword or identifier 
  */
 static void add_id_or_kw(Tokenizer *tokenizer){
-    string_push(&tokenizer->currentString, tokenizer->currentChar);
+    scratch_buffer_append_char(tokenizer->currentChar);
     bool is_id = false;
     while(true){
         char next = peek_char(tokenizer);
@@ -92,7 +88,7 @@ static void add_id_or_kw(Tokenizer *tokenizer){
             break;
         }
         char c = next_char(tokenizer);
-        string_push(&tokenizer->currentString, c);
+        scratch_buffer_append_char(c);
         //keywords only contain letters 
         //so if it doesn't have letters it must be an identifier
         if(!isalpha(c)) {
@@ -104,50 +100,51 @@ static void add_id_or_kw(Tokenizer *tokenizer){
         goto identifier;
     }
 
+    char* kw_id_str = scratch_buffer_as_str();
     //pretty much just as fast as using a hashmap 
-    if(strcmp("False", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_FALSE);
-    else if(strcmp("True", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_TRUE);
-    else if(strcmp("None", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_NONE);
-    else if(strcmp("and", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_AND);
-    else if(strcmp("as", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_AS);
-    else if(strcmp("assert", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_ASSERT);
-    else if(strcmp("break", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_BREAK);
-    else if(strcmp("class", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_CLASS);
-    else if(strcmp("continue", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_CONTINUE);
-    else if(strcmp("def", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_DEF);
-    else if(strcmp("del", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_DEL);
-    else if(strcmp("elif", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_ELIF);
-    else if(strcmp("else", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_ELSE);
-    else if(strcmp("except", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_EXCEPT);
-    else if(strcmp("finally", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_FINALLY);
-    else if(strcmp("for", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_FOR);
-    else if(strcmp("from", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_FROM);
-    else if(strcmp("global", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_GLOBAL);
-    else if(strcmp("import", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_IMPORT);
-    else if(strcmp("if", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_IF);
-    else if(strcmp("is", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_IS);
-    else if(strcmp("lambda", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_LAMBDA);
-    else if(strcmp("in", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_IN);
-    else if(strcmp("nonlocal", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_NONLOCAL);
-    else if(strcmp("not", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_NOT);
-    else if(strcmp("pass", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_PASS);
-    else if(strcmp("raise", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_RAISE);
-    else if(strcmp("return", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_RETURN);
-    else if(strcmp("or", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_OR);
-    else if(strcmp("yield", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_YIELD);
-    else if(strcmp("with", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_WITH);
-    else if(strcmp("while", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_WHILE);
-    else if(strcmp("try", tokenizer->currentString->str) == 0) add_token(tokenizer, TOK_TRY);    
+    if(strcmp("False", kw_id_str) == 0) add_token(tokenizer, TOK_FALSE);
+    else if(strcmp("True", kw_id_str) == 0) add_token(tokenizer, TOK_TRUE);
+    else if(strcmp("None", kw_id_str) == 0) add_token(tokenizer, TOK_NONE);
+    else if(strcmp("and", kw_id_str) == 0) add_token(tokenizer, TOK_AND);
+    else if(strcmp("as", kw_id_str) == 0) add_token(tokenizer, TOK_AS);
+    else if(strcmp("assert", kw_id_str) == 0) add_token(tokenizer, TOK_ASSERT);
+    else if(strcmp("break", kw_id_str) == 0) add_token(tokenizer, TOK_BREAK);
+    else if(strcmp("class", kw_id_str) == 0) add_token(tokenizer, TOK_CLASS);
+    else if(strcmp("continue", kw_id_str) == 0) add_token(tokenizer, TOK_CONTINUE);
+    else if(strcmp("def", kw_id_str) == 0) add_token(tokenizer, TOK_DEF);
+    else if(strcmp("del", kw_id_str) == 0) add_token(tokenizer, TOK_DEL);
+    else if(strcmp("elif", kw_id_str) == 0) add_token(tokenizer, TOK_ELIF);
+    else if(strcmp("else", kw_id_str) == 0) add_token(tokenizer, TOK_ELSE);
+    else if(strcmp("except", kw_id_str) == 0) add_token(tokenizer, TOK_EXCEPT);
+    else if(strcmp("finally", kw_id_str) == 0) add_token(tokenizer, TOK_FINALLY);
+    else if(strcmp("for", kw_id_str) == 0) add_token(tokenizer, TOK_FOR);
+    else if(strcmp("from", kw_id_str) == 0) add_token(tokenizer, TOK_FROM);
+    else if(strcmp("global", kw_id_str) == 0) add_token(tokenizer, TOK_GLOBAL);
+    else if(strcmp("import", kw_id_str) == 0) add_token(tokenizer, TOK_IMPORT);
+    else if(strcmp("if", kw_id_str) == 0) add_token(tokenizer, TOK_IF);
+    else if(strcmp("is", kw_id_str) == 0) add_token(tokenizer, TOK_IS);
+    else if(strcmp("lambda", kw_id_str) == 0) add_token(tokenizer, TOK_LAMBDA);
+    else if(strcmp("in", kw_id_str) == 0) add_token(tokenizer, TOK_IN);
+    else if(strcmp("nonlocal", kw_id_str) == 0) add_token(tokenizer, TOK_NONLOCAL);
+    else if(strcmp("not", kw_id_str) == 0) add_token(tokenizer, TOK_NOT);
+    else if(strcmp("pass", kw_id_str) == 0) add_token(tokenizer, TOK_PASS);
+    else if(strcmp("raise", kw_id_str) == 0) add_token(tokenizer, TOK_RAISE);
+    else if(strcmp("return", kw_id_str) == 0) add_token(tokenizer, TOK_RETURN);
+    else if(strcmp("or", kw_id_str) == 0) add_token(tokenizer, TOK_OR);
+    else if(strcmp("yield", kw_id_str) == 0) add_token(tokenizer, TOK_YIELD);
+    else if(strcmp("with", kw_id_str) == 0) add_token(tokenizer, TOK_WITH);
+    else if(strcmp("while", kw_id_str) == 0) add_token(tokenizer, TOK_WHILE);
+    else if(strcmp("try", kw_id_str) == 0) add_token(tokenizer, TOK_TRY);    
     else{
         identifier:
             add_token(tokenizer, TOK_IDENTIFIER);
     }
-    string_clear(tokenizer->currentString);
+    scratch_buffer_clear();
 }
 
 
 static void add_number(Tokenizer *tokenizer){
-    string_push(&tokenizer->currentString, tokenizer->currentChar);
+    scratch_buffer_append_char(tokenizer->currentChar);
     bool is_float = false;
     bool is_valid = true;
     while(true){
@@ -157,22 +154,22 @@ static void add_number(Tokenizer *tokenizer){
         }
         char c = next_char(tokenizer);
         if(isdigit(c)){
-            string_push(&tokenizer->currentString, c);
+            scratch_buffer_append_char(c);
         } else if(c == '.'){
             if(is_float) is_valid = false;
             is_float = true; 
-            string_push(&tokenizer->currentString, c);
+            scratch_buffer_append_char(c);
         }
         else if(c == '_'){
 
         } else{
             is_valid = false;
-            string_push(&tokenizer->currentString, c);
+            scratch_buffer_append_char(c);
             break;
         }  
     }
     if(!is_valid){
-        fprintf(stderr, "Invalid number on line %d: %s", tokenizer->line, tokenizer->currentString->str);
+        fprintf(stderr, "Invalid number on line %d: %s", tokenizer->line, scratch_buffer_as_str());
         exit(EXIT_FAILURE);
     }
     if(is_float){
@@ -188,7 +185,7 @@ static void create_string_token(Tokenizer *tokenizer){
     //consume quote char 
     next_char(tokenizer);
     while(tokenizer->currentChar != '\"'){
-        string_push(&tokenizer->currentString,tokenizer->currentChar);
+        scratch_buffer_append_char(tokenizer->currentChar);
         next_char(tokenizer);
 
         if(tokenizer->currentChar == EOF){
@@ -378,7 +375,6 @@ ArrayList* tokenize_file(File* file){
                       add_token(&tokenizer, TOK_NEW_LINE);
                       break;
             case '.':
-                      if(tokenizer.currentString->str)
                       add_token(&tokenizer,TOK_DOT);
                       break;
             case '&':
@@ -420,7 +416,7 @@ ArrayList* tokenize_file(File* file){
 
     }
 END:
-     return delete_tokenizer(&tokenizer);
+     return tokenizer.tokens;
 }
 
 
