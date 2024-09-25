@@ -11,7 +11,7 @@ const char* get_literal_type(LiteralExpr* expr);
 
 void print_token(Token token);
 
-void print_tokens(ArrayList tokens);
+void print_tokens(ArrayList* tokens);
 
 const char* get_token_type(TokenType t);
 

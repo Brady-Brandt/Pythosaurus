@@ -144,8 +144,8 @@ void print_token(Token token){
 }
 
 
-void print_tokens(ArrayList tokens){
-    for(int i = 0; i < tokens.size; i++){
+void print_tokens(ArrayList* tokens){
+    for(int i = 0; i < tokens->size; i++){
         Token current_tok = array_list_get(tokens, Token, i);
         print_token(current_tok);
     }
@@ -213,13 +213,13 @@ void print_expr(Expr* expression){
         case EXPR_FUNC: {
             FuncExpr* fexpr = (FuncExpr*)expression;
             printf("Func: %s ", fexpr->name->str);
-            if(fexpr->args.data == NULL){
+            if(fexpr->args->data == NULL){
                 printf("No args");
             } 
-            for(int i = 0; i < fexpr->args.size; i++){
+            for(int i = 0; i < fexpr->args->size; i++){
                 Expr* e = array_list_get(fexpr->args, Expr*, i);
                 print_expr(e);
-                if(i + 1 < fexpr->args.size){
+                if(i + 1 < fexpr->args->size){
                     printf(",");
                 }
             }
@@ -264,7 +264,7 @@ void print_statement(Statement* statement){
         case STMT_BLOCK: {
             BlockStmt* s = (BlockStmt*)(statement);
             printf("Block: \n");
-            for(int i =0; i < s->statements.size; i++){
+            for(int i =0; i < s->statements->size; i++){
                 Statement* temp = array_list_get(s->statements, Statement*, i);
                 print_statement(temp);
             }
@@ -301,7 +301,7 @@ void print_statement(Statement* statement){
         }
         case STMT_FUNC: {
             FunctionStmt* stmt = (FunctionStmt*)(statement);
-            printf("FunctionDef: %s, Arg Count: %d\n", stmt->identifier->str, stmt->parameters.size); 
+            printf("FunctionDef: %s, Arg Count: %d\n", stmt->identifier->str, stmt->parameters->size); 
             print_statement(stmt->body);
             break;
         } 
@@ -334,7 +334,7 @@ void print_statement(Statement* statement){
         case STMT_GLOBAL: {
             GlobalDelStmt* s = (GlobalDelStmt*)statement;
             printf("%s ", (s->type == STMT_GLOBAL) ? "Global" : "Del");
-            for(int i = 0; i < s->values.size; i++){
+            for(int i = 0; i < s->values->size; i++){
                 LiteralExpr* expr = array_list_get(s->values, LiteralExpr*, i);
                 print_expr((Expr*)expr);
             }
@@ -349,7 +349,7 @@ void print_statement(Statement* statement){
 void print_expr(Expr *expression){}
 void print_statement(Statement *expression){}
 void print_token(Token token){}
-void print_tokens(ArrayList tokens) {}
+void print_tokens(ArrayList* tokens) {}
 #endif 
 
 
