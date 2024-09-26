@@ -110,7 +110,7 @@ const char* class_get_name(ClassInstance* self){
     if(obj->isNative){
         return obj->native->name;
     } else{
-        return obj->user->name->str;
+        return get_str(obj->user->name);
     }
 } 
 

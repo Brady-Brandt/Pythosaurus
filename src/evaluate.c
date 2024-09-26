@@ -23,7 +23,7 @@ static ClassInstance* Literal_to_class(LiteralExpr* expr){
         case LIT_FLOAT:
             return new_float(expr->_float);
         case LIT_BOOL:
-            return new_float(expr->boolean);
+            return new_bool(expr->boolean);
         case LIT_STRING:
             return new_str(expr->string);
         case LIT_NONE:
@@ -75,7 +75,7 @@ static bool fast_as_bool(ClassInstance* s){
 
     if(is_str_class(s)){
         String* st = get_primitive(s);
-        return st != NULL && st->size > 0;
+        return st != NULL && str_size(st);
     }
     return true;
 }
@@ -390,7 +390,7 @@ void evaluate_statement(Statement* statement){
             ClassInstance* temp = evaluate_expression(astmt->condition);
             if(fast_as_bool(temp) == false){
                 //don't have exceptions implemented yet, so we will just throw an error
-                interpretor_throw_error("AssertionError: %s", (astmt->msg == NULL) ? "" : astmt->msg->str);
+                interpretor_throw_error("AssertionError: %s", (astmt->msg == NULL) ? "" : get_str(astmt->msg));
             }
             interpretor_restore_expression(assert_start);
             break;

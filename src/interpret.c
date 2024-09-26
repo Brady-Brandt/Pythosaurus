@@ -97,7 +97,7 @@ void interpretor_assign_var(String* name, ClassInstance* value){
  
     //check if the variable exists first
     Scope* local_scope = stack_peek(interpret.stackFrames, Scope*);
-    void* existing_value = hash_map_get_value(local_scope->variables, name->str);
+    void* existing_value = hash_map_get_value(local_scope->variables, name);
     if(existing_value != NULL){
         memcpy(existing_value, value, sizeof(ClassInstance));
         return;
@@ -107,43 +107,43 @@ void interpretor_assign_var(String* name, ClassInstance* value){
     memcpy(&entry, value, sizeof(ClassInstance));
     allocator_add(&local_scope->alloc, entry, ClassInstance);
     ClassInstance* result = allocator_peek(&local_scope->alloc);
-    hash_map_add_entry(local_scope->variables, name->str, result);
+    hash_map_add_entry(local_scope->variables, name, result);
 }
 
 
 
 ClassInstance* interpretor_get_var(String* name){ 
     Scope* local_scope = stack_peek(interpret.stackFrames, Scope*);
-    ClassInstance* value = hash_map_get_value(local_scope->variables, name->str);
+    ClassInstance* value = hash_map_get_value(local_scope->variables, name);
     if(value != NULL && value != NotImplemented){ 
         return value;     
     } 
-    interpretor_throw_error("Variable %s not defined\n", name->str);
+    interpretor_throw_error("Variable %s not defined\n", get_str(name));
 }
 
 
 void interpretor_global_var(String* name){
     Scope* local_scope = stack_peek(interpret.stackFrames, Scope*);
-    ClassInstance* value = hash_map_get_value(local_scope->variables, name->str);
+    ClassInstance* value = hash_map_get_value(local_scope->variables, name);
     if(value != NULL){
-        interpretor_throw_error("%s assigned before global declaration", name->str);
+        interpretor_throw_error("%s assigned before global declaration", name);
     }
 
     Scope* global_scope = array_list_get(interpret.stackFrames, Scope*, 0);
-    value = hash_map_get_value(global_scope->variables, name->str);
+    value = hash_map_get_value(global_scope->variables, name);
 
     //if the variable doesn't exist, declare in the global scope 
     if(value == NULL){
         allocator_add(&global_scope->alloc, *NotImplemented, ClassInstance);
         ClassInstance* result = allocator_peek(&global_scope->alloc);
         //add the value to global scope
-        hash_map_add_entry(global_scope->variables, name->str, result);
+        hash_map_add_entry(global_scope->variables, name, result);
         //add the value to the local scope 
-        if(global_scope != local_scope) hash_map_add_entry(local_scope->variables, name->str, result);
+        if(global_scope != local_scope) hash_map_add_entry(local_scope->variables, name, result);
     } else{ 
         //if the variable already exists in the local scope
         //add it to the local scope 
-        hash_map_add_entry(local_scope->variables, name->str, value);
+        hash_map_add_entry(local_scope->variables, name, value);
     }    
 }
 
@@ -153,18 +153,18 @@ void interpretor_del_value(LiteralExpr* val){
     }
     Scope* local_scope = stack_peek(interpret.stackFrames, Scope*);
     Scope* global_scope = array_list_get(interpret.stackFrames, Scope*, 0);
-    ClassInstance* value = hash_map_delete_entry(local_scope->variables, val->identifier->str);
+    ClassInstance* value = hash_map_delete_entry(local_scope->variables, val->identifier);
 
     if(local_scope != global_scope){
-        ClassInstance* global_value = hash_map_get_value(global_scope->variables, val->identifier->str);
+        ClassInstance* global_value = hash_map_get_value(global_scope->variables, val->identifier);
         //checks if the variable was declared with the global keyword 
         //it ensures the variable is deleted from the global scope as well as the local 
         if(global_value != NULL && global_value == value){
-           hash_map_delete_entry(global_scope->variables, val->identifier->str); 
+           hash_map_delete_entry(global_scope->variables, val->identifier); 
         }
     }
 
-    if(value == NULL) interpretor_throw_error("%s not defined", val->identifier->str);
+    if(value == NULL) interpretor_throw_error("%s not defined", get_str(val->identifier));
 }
 
 
@@ -208,7 +208,7 @@ void interpretor_create_function(FunctionStmt* func) {
    funcdef->isNative = false;
    funcdef->funcBody.user.body = (BlockStmt*)func->body;
    funcdef->funcBody.user.args = func->parameters;
-   hash_map_add_entry(interpret.functions, func->identifier->str, funcdef);
+   hash_map_add_entry(interpret.functions, func->identifier, funcdef);
 }
 
 
@@ -217,7 +217,7 @@ void create_native_func(HashMap *map, const char* name, int argCount, NativeFunc
     funcdef->isNative = true; 
     funcdef->argCount = argCount; 
     funcdef->funcBody.native = funcBody;
-    hash_map_add_entry(map, name, funcdef);
+    hash_map_add_entry(map, string_from_const_str(name), funcdef);
 }
 
 void create_functions(){
@@ -246,8 +246,8 @@ void interpretor_return(ClassInstance* value){
 }
 
 ClassInstance* interpretor_call_function(String* name, FuncArgs args){
-    Function* func = hash_map_get_value(interpret.functions, name->str); 
-    if(func == NULL) interpretor_throw_error("Function %s not defined\n", name->str);
+    Function* func = hash_map_get_value(interpret.functions, name); 
+    if(func == NULL) interpretor_throw_error("Function %s not defined\n", get_str(name));
     if(args.count != func->argCount){
         fprintf(stderr, "Invalid args expected %d, got %d\n", func->argCount, args.count);
         exit(1);
@@ -288,17 +288,17 @@ ClassInstance* interpretor_call_function(String* name, FuncArgs args){
 
 void interpretor_add_class(Class* obj){
     if(obj->isNative){
-        hash_map_add_entry(interpret.classes, obj->native->name, obj);
+        hash_map_add_entry(interpret.classes, string_from_const_str(obj->native->name), obj);
     } else{
-        hash_map_add_entry(interpret.classes, obj->user->name->str, obj);
+        hash_map_add_entry(interpret.classes, obj->user->name, obj);
     }
 }
 
 
 Class* interpretor_get_class(String* name){
-    Class* c = hash_map_get_value(interpret.classes, name->str);
+    Class* c = hash_map_get_value(interpret.classes, name);
     if(c == NULL){
-        interpretor_throw_error("Class %s not defined\n", name->str);
+        interpretor_throw_error("Class %s not defined\n", get_str(name));
     }
     return c;
 }

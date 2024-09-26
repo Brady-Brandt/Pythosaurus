@@ -216,17 +216,9 @@ static ClassInstance* __pow__(MethodArgs* args){
 }
 
 static ClassInstance* __repr__(MethodArgs* args){ 
-    long* a = (long*)get_primitive(__SELF__);
-    int len = 2;
-    if(*a > 0){
-        len += log10(*a);
-    } else if(*a < 0){
-        len += log10(labs(*a));
-    }
-    String* rep = string_create_with_cap(len);
-    int size = snprintf(rep->str, len, "%ld", *a);
-    rep->size = size;
-    return new_str(rep);
+    long* a = (long*)get_primitive(__SELF__); 
+    String* res = string_from_va("%ld", *a);
+    return new_str(res);
 }
 
 static ClassInstance* __rshift__(MethodArgs* args){

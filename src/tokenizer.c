@@ -60,14 +60,17 @@ static void add_token(Tokenizer *tokenizer, TokenType type){
     token.line = tokenizer->line;
     switch (type) {
         case TOK_IDENTIFIER:
-        case TOK_FLOAT:
-        case TOK_STRING:
-        case TOK_INTEGER: {
+        case TOK_STRING: {
             const char* temp = (const char*)scratch_buffer_as_str();
-            token.literal = string_from_str(temp); 
+            token.literal = string_from_const_str(temp); 
             scratch_buffer_clear();
             break;
         }
+        case TOK_INTEGER:
+        case TOK_FLOAT:
+            token.literal = string_from_str(scratch_buffer_as_str());
+            scratch_buffer_clear();
+            break;
         default: 
             token.literal = NULL; 
     }
@@ -77,7 +80,7 @@ static void add_token(Tokenizer *tokenizer, TokenType type){
 
 
 /** 
- * Determine if the string is a keyword or identifier 
+ * Determine if the String is a keyword or identifier 
  */
 static void add_id_or_kw(Tokenizer *tokenizer){
     scratch_buffer_append_char(tokenizer->currentChar);

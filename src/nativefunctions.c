@@ -2,6 +2,7 @@
 #include "interpret.h"
 #include "object.h"
 #include "stringtype.h"
+#include "arena.h"
 
 
 #include <math.h>
@@ -22,7 +23,7 @@ ClassInstance* print(FuncArgs* args){
         a.self = true;
         ClassInstance* str = call_native_method(val, __REPR__, &a);
         if(str == NotImplemented) interpretor_throw_error("Invalid operand for print(): %s", class_get_name(val));
-        printf("%s\n", str->pstr->str);
+        printf("%s\n", get_str(str->pstr));
         string_delete(str->pstr);
     }
     return None;
@@ -63,21 +64,26 @@ ClassInstance* bin(FuncArgs* args){
     long* p_integer = get_primitive(val);
     long integer = *p_integer;
     uint32_t bits = log2(labs(integer)) + 1;
-    //bits + 0b + '-' 
-    uint32_t bin_size = bits + 3; 
-    String* bin_str = string_create_with_cap(bin_size);
+
+    scratch_buffer_clear();
     if(integer < 0){
         integer = labs(integer);
-        string_push(&bin_str, '-');
+        scratch_buffer_append_char('-');
     }
-    string_push(&bin_str, '0');
-    string_push(&bin_str, 'b');
+
+    scratch_buffer_append_char('0');
+    scratch_buffer_append_char('b');
     
     for(int i = 0; i < bits; i++){
         char c = ((integer >> (bits - 1 - i)) & 1) ? '1' : '0';
-        string_push(&bin_str, c);
+
+        scratch_buffer_append_char(c);
     }
-    return new_str(bin_str);
+
+    String* bin_num = string_from_str(scratch_buffer_as_str());
+
+    scratch_buffer_clear();
+    return new_str(bin_num);
 }
 
 ClassInstance* _bool(FuncArgs* args) { 
@@ -134,18 +140,8 @@ ClassInstance* hex(FuncArgs* args) {
     }
     long* p_integer = get_primitive(val);
     long integer = *p_integer;
-
-    uint32_t digits = log(integer) / log(16) + 1;
-    //digits + 0x + '-' 
-    uint32_t hex_size = digits + 3; 
-    String* hex_str = string_create_with_cap(hex_size);
-    if(integer < 0){
-        integer = labs(integer);
-        string_push(&hex_str, '-');
-    }
-    int num_digits = sprintf(&hex_str->str[hex_str->size], "0x%lx",integer);
-    hex_str->size += num_digits;
-    return new_str(hex_str);  
+    String* res = string_from_va("0x%lx", integer);
+    return new_str(res);  
 }
 
 ClassInstance* id(FuncArgs* args);
@@ -156,15 +152,17 @@ ClassInstance* input(FuncArgs* args){
         interpretor_throw_error("Invalid operand for input()");
     }
 
-    printf("%s", val->pstr->str);
+    printf("%s", get_str(val->pstr));
+    scratch_buffer_clear();
 
-    String* result_string = string_create_with_cap(8);
     while(true){
         int c = fgetc(stdin);
         if(c == EOF || c == '\n') break;
-        string_push(&result_string, c);
+        scratch_buffer_append_char(c);
     }
-    return new_str(result_string);
+    String* res = string_from_str(scratch_buffer_as_str());
+    scratch_buffer_clear();
+    return new_str(res);
 }
 
 

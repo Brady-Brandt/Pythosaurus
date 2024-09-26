@@ -281,13 +281,13 @@ static Statement* function_statement(Parser *p){
     String* identifier = parser_prev_token(p).literal;
     parser_expect_consume_token(p, TOK_LEFT_PAREN);
     ArrayList* params;
-    array_list_create_cap(params, String*, 10);
+    array_list_create_cap(params, String, 10);
 
     //TODO: VARADIC AND KEYWORD ARGS 
     if(p->currentToken.type != TOK_RIGHT_PAREN){
        do {
            if(params->size >= 10){
-                parser_new_error(p, "Invalid Parameter count: %s. Functions only support 10 parameters\n", identifier->str);
+                parser_new_error(p, "Invalid Parameter count: %s. Functions only support 10 parameters\n", get_str(identifier));
            } 
            parser_expect_token(p, TOK_IDENTIFIER);
            array_list_append(params, String*, p->currentToken.literal);
@@ -397,7 +397,7 @@ static Statement* class_statement(Parser *p){
 
     //gets the superclasses if there are any
     if(match(p, TOK_LEFT_PAREN)){
-        array_list_create_cap(super, String*, 1);
+        array_list_create_cap(super, String, 1);
         do {  
            parser_expect_token(p, TOK_IDENTIFIER);
            array_list_append(super, String*, p->currentToken.literal);
@@ -525,6 +525,7 @@ void delete_statement(Statement* statement){
         } 
         case STMT_RETURN: {
             ReturnStmt* s = (ReturnStmt*)(statement); 
+            delete_expr_tree(s->value);
             free(s);
             break;
         }

@@ -168,11 +168,7 @@ static ClassInstance* __pow__(MethodArgs* args){
 
 static ClassInstance* __repr__(MethodArgs* args){ 
     double* a = (double*)get_primitive(__SELF__);
-    char buffer[50];
-    int size = snprintf(buffer, 50, "%g", *a);
-    buffer[size] = '\0';
-    String* res = string_from_str(buffer);
-    return new_str(res);
+    return new_str(string_from_va("%g", *a));
 }
 
 static ClassInstance* __round__(MethodArgs* args){

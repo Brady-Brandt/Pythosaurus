@@ -85,9 +85,9 @@ static Expr* primary(Parser *p){
         case TOK_INTEGER:
             result->litType = LIT_INTEGER;
             errno = 0;
-            result->integer = strtol(p->currentToken.literal->str, NULL, 10);
+            result->integer = strtol(get_str(p->currentToken.literal), NULL, 10);
             if(errno == ERANGE){
-                parser_new_error(p, "Invalid integer: %s\n", p->currentToken.literal->str);
+                parser_new_error(p, "Invalid integer: %s\n", get_str(p->currentToken.literal));
             }
             string_delete(p->currentToken.literal);
             break;
@@ -95,9 +95,9 @@ static Expr* primary(Parser *p){
         case TOK_FLOAT:
             result->litType = LIT_FLOAT;
             errno = 0;
-            result->_float = strtod(p->currentToken.literal->str, NULL);
+            result->_float = strtod(get_str(p->currentToken.literal), NULL);
             if(errno == ERANGE){
-                parser_new_error(p, "Invalid float: %s\n", p->currentToken.literal->str);
+                parser_new_error(p, "Invalid float: %s\n", get_str(p->currentToken.literal));
             }
             string_delete(p->currentToken.literal);
             break;
@@ -144,16 +144,13 @@ static Expr* call(Parser *p){
    Expr* expr = primary(p);
    while(match(p, TOK_LEFT_PAREN)){
         ArrayList* args = func_arg(p);
-        if(expr->type != EXPR_LITERAL){
-            parser_new_error(p, "Invalid function name\n");
-        }
-
+        if(expr->type != EXPR_LITERAL) goto INVALID;
         LiteralExpr* lexpr = (LiteralExpr*)expr;
-        if(lexpr->litType != LIT_IDENTIFIER){ 
-            parser_new_error(p, "Invalid function name\n");
-        }
-
+        if(lexpr->litType != LIT_IDENTIFIER) goto INVALID;
         return create_func_expr(lexpr->string, args);
+        INVALID:
+            parser_new_error(p, "Invalid function name\n");
+
    }
     return expr;
 }
@@ -320,12 +317,13 @@ void delete_expr_tree(Expr* expression){
         } 
         case EXPR_GROUPING:
             delete_expr_tree(expression->expr);
+            free(expression);
             break;
 
         case EXPR_UNARY:{
             UnaryExpr* uexpr = (UnaryExpr*)expression; 
             if(uexpr->right != NULL){
-                free(uexpr->right);
+                delete_expr_tree(uexpr->right);
             }
             free(uexpr);
             break;

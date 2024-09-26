@@ -37,16 +37,16 @@ static ClassInstance* __eq__(MethodArgs* args){
    String* s1 = get_primitive(__SELF__);
    String* s2 = get_primitive(b);
 
-   if(s1->size != s2->size){
+   if(str_size(s1) != str_size(s2)){
         return new_bool(false); 
    }
-   return new_bool(strcmp(s1->str,s2->str) == 0); 
+   return new_bool(string_eq(s1,s2)); 
 }
 
 
 static ClassInstance* __bool__(MethodArgs* args){
    String* s = get_primitive(__SELF__);
-   return new_bool(s != NULL && s->size > 0);
+   return new_bool(s != NULL && str_size(s) > 0);
 }
 
 
@@ -61,7 +61,7 @@ static ClassInstance* __contains__(MethodArgs* args){
     String* s1 = get_primitive(__SELF__);
     String* s2 = get_primitive(arg);
 
-    return new_bool(strstr(s1->str, s2->str) != NULL);
+    return new_bool(strstr(get_str(s1), get_str(s2)) != NULL);
 }
 
 
@@ -79,7 +79,7 @@ static ClassInstance* __float__(MethodArgs* args){
     String* s = get_primitive(__SELF__);
     errno = 0;
     char* end;
-    double res = strtod(s->str, &end);
+    double res = strtod(get_str(s), &end);
     if(errno == ERANGE || *end != '\0'){
         interpretor_throw_error("Invalid float");
     }
@@ -99,7 +99,7 @@ static ClassInstance* __ge__(MethodArgs* args){
     String* s1 = get_primitive(__SELF__);
     String* s2 = get_primitive(arg);
 
-    return new_bool(strcmp(s1->str, s2->str) >= 0);
+    return new_bool(strcmp(get_str(s1), get_str(s2)) >= 0);
 }
 
 
@@ -111,13 +111,13 @@ static ClassInstance* __getitem__(MethodArgs* args){
     long* temp = (long*)(get_primitive(arg));
     long index = *temp;
     String* s = get_primitive(__SELF__);
-    if(index < 0 || index > s->size - 1){
+    if(index < 0 || index > str_size(s) - 1){
         interpretor_throw_error("Index out of Range");
     }
-    String* new_string = string_create_with_cap(1);
-    string_push(&new_string, s->str[index]);
    
-    return new_str(new_string);
+
+    interpretor_throw_error("Not implemented yet");
+    return new_str(0);
 }
 
 
@@ -126,7 +126,7 @@ static ClassInstance* __int__(MethodArgs* args){
     String* s = get_primitive(__SELF__);
     errno = 0;
     char* end;
-    long res = strtol(s->str, &end, 10);
+    long res = strtol(get_str(s), &end, 10);
     if(errno == ERANGE || *end != '\0'){
         interpretor_throw_error("Invalid integer");
     }
@@ -143,12 +143,12 @@ static ClassInstance* __le__(MethodArgs* args){
     String* s1 = get_primitive(__SELF__);
     String* s2 = get_primitive(arg);
 
-    return new_bool(strcmp(s1->str, s2->str) <= 0);
+    return new_bool(strcmp(get_str(s1), get_str(s2)) <= 0);
 }
 
 static ClassInstance* __len__(MethodArgs* args){
     String* s = get_primitive(__SELF__);
-    return new_integer(s->size);
+    return new_integer(str_size(s));
 }
 
 static ClassInstance* __lt__(MethodArgs* args){
@@ -161,7 +161,7 @@ static ClassInstance* __lt__(MethodArgs* args){
     String* s1 = get_primitive(__SELF__);
     String* s2 = get_primitive(arg);
 
-    return new_bool(strcmp(s1->str, s2->str) < 0);
+    return new_bool(strcmp(get_str(s1), get_str(s2)) < 0);
 }
 
 static ClassInstance* __mul__(MethodArgs* args){
@@ -194,7 +194,7 @@ static ClassInstance* __gt__(MethodArgs* args){
     String* s1 = get_primitive(__SELF__);
     String* s2 = get_primitive(arg);
 
-    return new_bool(strcmp(s1->str, s2->str) > 0);
+    return new_bool(strcmp(get_str(s1), get_str(s2)) > 0);
 }
 
 
