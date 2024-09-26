@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 void memory_init();
 
@@ -11,6 +12,9 @@ void* arena_peek();
 void* arena_pop();
 
 void* const_pool_alloc(size_t size);
+
+//returns true if the pointer was allocated from the const pool
+bool const_pool_contains_ptr(void* ptr);
 
 void scratch_buffer_append_char(char c);
 

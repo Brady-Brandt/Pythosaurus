@@ -43,10 +43,13 @@ noreturn static void alloc_error(){
 
 void memory_init() {
     global_arena.cap = GLOBAL_SIZE_START;
+    global_arena.size = 0;
     global_arena.block = malloc(global_arena.cap);
     
     const_arena.cap = CONST_SIZE_START;
+    const_arena.size = 0;
     const_arena.block = malloc(const_arena.cap);
+
     
     scratch_buffer.data = malloc(SCRATCH_BUFFER_SIZE);
     scratch_buffer.offset = 0;
@@ -97,16 +100,21 @@ static void* _const_alloc(Arena* arena, size_t size){
     if(size + arena->size > arena->cap){
         fprintf(stderr, "Const pool is full\n");
         exit(EXIT_FAILURE);
-    } 
+    }
     void* res = arena->block + arena->size;
     arena->size += size;
     return res;
 }
 
 void* const_pool_alloc(size_t size){ 
-   return _const_alloc(&global_arena, size); 
+   return _const_alloc(&const_arena, size); 
 }
 
+
+
+bool const_pool_contains_ptr(void* ptr){
+    return (ptr >= const_arena.block) && ptr < (const_arena.block + const_arena.cap);
+}
 
 
 static inline void scratch_buffer_full(){
