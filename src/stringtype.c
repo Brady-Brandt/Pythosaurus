@@ -1,127 +1,98 @@
 #include "stringtype.h"
+#include "arena.h"
+#include <stdarg.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
 
-#define DEFAULT_STR_SIZE 10
 
 
-static void string_realloc(String **s){ 
-    String* old = (*s);
-    old->capacity *= 2;
-    String* new = malloc(sizeof(String) + old->capacity);
-    new->size = old->size;
-    new->capacity = old->capacity;
-    new->str = (void*)new + sizeof(String);
-    memcpy(new->str, old->str, old->size);
-    free(old);
-    *s = new;
-}
-
-String* string_create(){    
-    return string_create_with_cap(DEFAULT_STR_SIZE);
-}
-
-
-
-String* string_create_with_cap(uint32_t size){
-    void* str = malloc(sizeof(String) + size * sizeof(char) + 1);
-    String* result = str;
-    result->size = 0;
-    result->capacity = size;
-    result->str = str + sizeof(String);
-    result->str[0] = '\0';
-    return result;
-}
-
-
-
-String* string_from_str(const char* str){
+String* string_from_const_str(const char* str){
     uint32_t str_len = strlen(str);
-    String* result = string_create_with_cap(str_len);
+    void* data = const_pool_alloc(sizeof(String) + str_len + 1);
+    String* result = data;
     result->size = str_len;
-    strcpy(result->str, str);
+    result->data = (char*)(data + sizeof(String));
+    strcpy(get_str(result), str);
     return result;
 }
 
+
+String* string_from_str(char* str){
+    uint32_t str_len = strlen(str);
+    void* data = malloc(sizeof(String) + str_len + 1);
+    String* result = data;
+    result->size = str_len;
+    result->data = (char*)(data + sizeof(String));
+    strcpy(get_str(result), str);
+    return result;
+}
+
+
+String* string_from_va(const char* fmt, ...){
+    va_list list;
+    va_start(list, fmt);
+    char* data = scratch_buffer_vfmt(fmt, list);
+    va_end(list);
+    scratch_buffer_clear();
+    return string_from_str(data);
+}
+
+
+String* string_from_va_list(const char* fmt, va_list list){
+    char* data = scratch_buffer_vfmt(fmt, list);
+    scratch_buffer_clear();
+    return string_from_str(data);
+} 
 
 
 String* string_copy(String* s){
-    String* res = string_create_with_cap(s->size);
-    strcpy(res->str, s->str);
-    return res;
+    return string_from_str(get_str(s));
 }
 
 
-void string_push(String** s, char c){
-    String* str = *s;
-    if(str->size == str->capacity - 1){
-        string_realloc(s);
-    }
-    str = *s;
-    str->str[str->size++] = c;
-    str->str[str->size] = '\0';
+bool string_eq(String* s1, String* s2){
+    if(str_size(s1) != str_size(s2)) return false;
+    return strcmp(get_str(s1), get_str(s2)) == 0;
 }
-
-void string_clear(String* s){
-    s->str[0] = '\0';
-    s->size = 0;
-}
-
 
 void string_delete(String* s){
-    free(s);
-}
-
-
-void string_append_str(String** s, const char* str, uint32_t str_size){
-    String* string = *s;
-    if(string->size + str_size == string->capacity - 1){
-        string_realloc(s);
+    //only want to free memory that was allocated with malloc 
+    //the rest is allocated in our const pool 
+    if(const_pool_contains_ptr(s) == false && s != NULL){
+        free(s);
     }
-    string = *s;
-    strcat(string->str, str);
-    string->size++;
 }
-
-
-char string_pop(String* s){
-    if(s->size == 0) return 0;
-
-    char res = s->str[--s->size];
-    s->str[s->size] = '\0';
-    return res;
-}
-
 
 
 char string_get_char(String* s, uint32_t index){
-    if(index > s->size - 1) return 0;
-    return s->str[index];
+    if(index > str_size(s) - 1) return 0;
+    return get_str(s)[index];
 }
 
 
-
 String* string_concat(String* s1, String* s2){
-    uint32_t total_size = s1->size + s2->size;
-    String* result = string_create_with_cap(total_size); 
-    strcpy(result->str,s1->str); 
-    strcat(result->str, s2->str); 
-    result->size = total_size; 
-    result->str[total_size] = '\0';
+    uint32_t size = str_size(s1) + str_size(s2);
+    void* data = malloc(sizeof(String) + size + 1);
+    String* result = data;
+    result->size = size;
+    result->data = (char*)(data + sizeof(String));
+    strcpy(get_str(result),get_str(s1)); 
+    strcat(get_str(result), get_str(s2)); 
     return result;
 }
 
 String* string_multiply(String* s1, uint32_t times){
-    uint32_t size = s1->size * times; 
-    String* result = string_create_with_cap(size); 
-    result->size = size;
-    uint32_t index = 0;
+    scratch_buffer_clear();
+    char* str = get_str(s1);
     for(int i = 0; i < times; i++){
-        memcpy(&result->str[index], s1->str, s1->size);
-        index += s1->size;
+        for(int i = 0; i < str_size(s1); i++){
+            scratch_buffer_append_char(str[i]);
+        }
     }
-    result->str[size] = '\0';
-    return result;
+    String* res = string_from_str(scratch_buffer_as_str());
+    scratch_buffer_clear(); 
+    return res;
 }
+
 
