@@ -1,4 +1,5 @@
 #include "hashmap.h"
+#include "stringtype.h"
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
@@ -17,7 +18,7 @@
 
 
 typedef struct {
-    char* key;
+    String* key;
     void* value;
     struct HashEntry* next;
 } HashEntry;
@@ -67,8 +68,6 @@ void hash_map_delete(HashMap* map){
         HashEntry* curr = (HashEntry*)map->data[i];
         while(curr != NULL){
             HashEntry* temp = (HashEntry*)curr->next;
-            //free the key
-            free(curr->key);
             if(map->delete == NULL){
                 //free the value
                 free(curr->value);
@@ -87,13 +86,14 @@ void hash_map_delete(HashMap* map){
 }
 
 //performs cyclic shift has function
-static unsigned long hash(char* str) {
+static unsigned long hash(String* key) {
     int shift = 27;
     int hash = 0;
-    int c;
-    while((c=*str++)) { 
+    int size = str_size(key);
+    char* data = get_str(key);
+    for(int i = 0; i < size; i++){
         hash = (hash<<(shift)) | (hash>>(32-shift));
-        hash += (int)(c);
+        hash += (int)(data[i]);
     }
     return hash;
 }
@@ -116,12 +116,7 @@ static void add_entry(HashMap *map, unsigned int index, HashEntry* entry){
         HashEntry* prev = NULL;
         while(curr != NULL){ 
             //if this key already exists in the list we change the value at the key 
-            if(strcmp(entry->key, curr->key) == 0){
-                //even though keys are identical, we already allocated both 
-                //so we have to free the old one 
-                //TODO: Make it so we don't have to realloc 
-                free(curr->key);
-                //delete the value
+            if(string_eq(entry->key, curr->key)){
                 if(map->delete != NULL){
                     map->delete(curr->value); 
                 } else{
@@ -181,7 +176,7 @@ static void hash_map_resize(HashMap* map, unsigned int new_cap){
 }
 
 
-void hash_map_add_entry(HashMap* map, const char* key, void* value){
+void hash_map_add_entry(HashMap* map, String* key, void* value){
     //an expensize operation so try to avoid 
     if(map->size == map->capacity){
         if(map->capacity == MAX_HASHMAP_SIZE){
@@ -195,25 +190,22 @@ void hash_map_add_entry(HashMap* map, const char* key, void* value){
         hash_map_resize(map, new_size);
     }
 
-    //make a copy of the key 
-    char* new_key = calloc(strlen(key) + 1, sizeof(char));
-    strcpy(new_key, key);    
-    unsigned int index = compression(map, hash(new_key));
+    unsigned int index = compression(map, hash(key));
     HashEntry* entry = malloc(sizeof(HashEntry));
-    entry->key = new_key;
+    entry->key = key;
     entry->value = value;
     entry->next = NULL;
     add_entry(map, index, entry); 
 }
 
 
-void* hash_map_delete_entry(HashMap *map, char* key){
+void* hash_map_delete_entry(HashMap *map, String* key){
     unsigned int index = compression(map, hash(key));
     HashEntry* curr = (HashEntry*)map->data[index];
     HashEntry* prev = curr;
     while(curr != NULL) {
         //ensure the keys match 
-        if(strcmp(key, curr->key) == 0){
+        if(string_eq(key, curr->key)){
             //remove the index of from front or end of linked list
             if(prev != curr){
                 prev->next = curr->next;
@@ -222,7 +214,6 @@ void* hash_map_delete_entry(HashMap *map, char* key){
                 //removing the index from the front of the linked list
                 map->data[index] = curr->next;
             }
-            free(curr->key);
             void* value = curr->value;
             free(curr);
             curr = NULL;
@@ -236,7 +227,7 @@ void* hash_map_delete_entry(HashMap *map, char* key){
 
 }
 
-void hash_map_delete_entry_with_value(HashMap *map, char *key){
+void hash_map_delete_entry_with_value(HashMap *map, String* key){
     void* data = hash_map_delete_entry(map, key);
     if(data != NULL) {
         if(map->delete != NULL){
@@ -247,11 +238,11 @@ void hash_map_delete_entry_with_value(HashMap *map, char *key){
     }
 }
 
-void* hash_map_get_value(HashMap *map, char* key){
+void* hash_map_get_value(HashMap *map, String* key){
     unsigned int index = compression(map, hash(key));
     HashEntry* curr = (HashEntry*)map->data[index];
     while(curr != NULL) {
-        if(strcmp(key, curr->key) == 0){
+        if(string_eq(key, curr->key)){
             return curr->value;
         }
         curr = (HashEntry*)curr->next;

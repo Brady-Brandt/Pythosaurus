@@ -1,5 +1,7 @@
 #pragma once
 
+#include "stringtype.h"
+
 //holds a function to determine how to delete each 
 //valu in a hashmap 
 typedef void (*delete_func)(void *);
@@ -29,22 +31,15 @@ void hash_map_delete(HashMap* map);
 //adds key, value to the hashmap 
 //the value pointer must be allocated on the heap 
 //the value pointer will be "owned" by the hashmap
-void hash_map_add_entry(HashMap* map, const char* key, void* value);
-
-#define hash_map_add_kv(map_ptr, key, type, value) \
-    do { \
-        type* temp = malloc(sizeof(type)); \
-        *temp = value; \
-        hash_map_add_entry(map_ptr, key, temp); \
-    } while(0)
+void hash_map_add_entry(HashMap* map, String* key, void* value);
 
 
 //deletes the given entry and returns it or null if it doesn't exist
-void* hash_map_delete_entry(HashMap *map, char* key);
+void* hash_map_delete_entry(HashMap *map, String* key);
 
 //deletes the given entry if it exists
-void hash_map_delete_entry_with_value(HashMap *map, char* key);
+void hash_map_delete_entry_with_value(HashMap *map, String* key);
 
 
 //returns the value at the key or null
-void* hash_map_get_value(HashMap *map, char* key);
+void* hash_map_get_value(HashMap *map, String* key);
