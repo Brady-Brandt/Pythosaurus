@@ -21,8 +21,8 @@ int main(int argc, char** argv){
     ArrayList* tokens = tokenize_file(&file);
     Parser p;
     parser_create(&p, &file, tokens);
-    ArrayList* stmts = parse_tokens(&p);
-    interpt_stmts(&file, stmts);
+    ParserResult p_res = parse_tokens(&p);
+    interpt_stmts(p_res);
 
     memory_cleanup();
 
