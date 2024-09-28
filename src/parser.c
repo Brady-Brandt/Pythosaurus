@@ -21,6 +21,8 @@ void parser_create(Parser *p, File* f, ArrayList* tokens){
     p->tokenIndex = 0;
     p->indentationLevel = 0;
     p->file = f;
+    p->funcDefc = 0;
+    p->funcVarc = 0;
 }
 
 
@@ -182,7 +184,7 @@ void parser_restore_state(Parser *p, struct ParserState* pstate){
 
 
 
-ArrayList* parse_tokens(Parser *p){
+ParserResult parse_tokens(Parser *p){
     ArrayList* statements;
     array_list_create(statements, Statement*);
     parser_next_token(p);
@@ -198,7 +200,12 @@ ArrayList* parse_tokens(Parser *p){
         array_list_append(statements, Statement*, stmt);
     }
     parser_delete(p);
-    return statements;
+    ParserResult result;
+    result.file = p->file;
+    result.statements = statements;
+    result.funcDefc = p->funcDefc;
+    result.varDefc = p->varDefc;
+    return result;
 }
 
 

@@ -68,8 +68,35 @@ typedef struct {
     unsigned int tokenIndex; //index of the current token
     unsigned int indentationLevel;
     File* file;
+
+    uint32_t funcDefc;
+    uint32_t varDefc;
+
+    uint32_t funcVarc; //amount of variables declared in the current function (includes params)
 } Parser;
 
+
+typedef struct{
+    ArrayList* statements;
+    File* file;
+    uint32_t funcDefc;
+    uint32_t varDefc;
+} ParserResult;
+
+
+
+#define parser_inc_var(p)\
+    do{ \
+        p->varDefc++; \
+        p->funcVarc++; \
+    } while(0) \
+
+#define parser_inc_func(p) \
+    do { \
+        p->funcDefc++; \
+    } while(0)
+
+    
 
 void parser_create(Parser *p, File* f, ArrayList* tokens);
 
@@ -104,7 +131,7 @@ void parser_try_consume_token(Parser *p, TokenType tok);
 noreturn void parser_new_error(Parser *p, const char* fmt, ...);
 
 
-ArrayList* parse_tokens(Parser *p);
+ParserResult parse_tokens(Parser *p);
 
 
 //this should not be invoked directly 

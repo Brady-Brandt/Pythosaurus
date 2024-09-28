@@ -89,7 +89,7 @@ static Statement* create_while_stmt(uint32_t line, Expr* condition, Statement* _
 }
 
 
-static Statement* create_func_stmt(uint32_t line, String* identifier, ArrayList* parameters, Statement* body){
+static Statement* create_func_stmt(uint32_t line, String* identifier, ArrayList* parameters, Statement* body, uint32_t var_count){
     FunctionStmt* result = malloc(sizeof(FunctionStmt));
     if(result == NULL) return NULL;
     result->type = STMT_FUNC;
@@ -97,6 +97,7 @@ static Statement* create_func_stmt(uint32_t line, String* identifier, ArrayList*
     result->identifier = identifier;
     result->parameters = parameters;
     result->body = body;
+    result->varCount = var_count;
     return (Statement*)result;
 }
 
@@ -153,6 +154,7 @@ static Statement* assign_statement(Parser* p){
             Statement* stmt = create_assign_stmt(line, identifier, value); //TODO: ADD SUPORT FOR SEMICOLONS TO TERMINATE 
             //STATEMENTS
             parser_expect_token(p, TOK_NEW_LINE);
+            parser_inc_var(p);
             return stmt;
         }
         case TOK_ADD_ASSIGN:
@@ -300,7 +302,12 @@ static Statement* function_statement(Parser *p){
     parser_expect_consume_token(p, TOK_NEW_LINE);
     unsigned int expected_indent = p->indentationLevel + 1;
     Statement* body = block_statement(p, expected_indent);
-    return create_func_stmt(line, identifier, params, body);
+    parser_inc_func(p);
+    uint32_t var_count = p->funcVarc + array_list_size(params);
+    //remove the local function counts from the global counts
+    p->varDefc -= p->funcVarc;
+
+    return create_func_stmt(line, identifier, params, body, var_count);
 }
 
 

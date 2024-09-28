@@ -123,6 +123,7 @@ typedef struct {
     String* identifier;
     ArrayList* parameters;
     Statement* body;
+    uint32_t varCount;
 } FunctionStmt;
 
 
