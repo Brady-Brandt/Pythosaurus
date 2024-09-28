@@ -2,6 +2,8 @@
 #include "interpret.h"
 #include "object.h"
 
+#define NATIVE_FUNC_COUNT 23 
+
 //returns the absolute value of a number
 ClassInstance* _abs(FuncArgs* args);
 
