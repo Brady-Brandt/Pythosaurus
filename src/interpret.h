@@ -1,10 +1,10 @@
 #pragma once 
 
 #include "expression.h"
+#include "parser.h"
 #include "statement.h"
 #include "stringtype.h"
 #include "stack.h"
-#include "arraylist.h"
 #include "hashmap.h"
 #include "allocator.h"
 #include "object.h"
@@ -56,10 +56,6 @@ typedef struct {
 
 
 
-void interpretor_create_scope();
-
-void interpretor_delete_scope();
-
 void interpretor_assign_var(String* name, ClassInstance* value);
 
 ClassInstance* interpretor_get_var(String* name);
@@ -90,4 +86,4 @@ ClassInstance* interpretor_call_function(String* name, FuncArgs args);
 
 noreturn void interpretor_throw_error(const char* fmt, ...);
 
-void interpt_stmts(File* file, ArrayList* stmts);
+void interpt_stmts(ParserResult parser_res);

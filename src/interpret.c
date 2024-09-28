@@ -4,6 +4,7 @@
 #include "expression.h"
 #include "file.h"
 #include "hashmap.h"
+#include "parser.h"
 #include "print.h"
 #include "stack.h"
 #include "statement.h"
@@ -11,11 +12,14 @@
 #include "evaluate.h"
 #include "nativefunctions.h"
 #include "object.h"
+#include "arena.h"
 
 #include <setjmp.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
+#include <time.h>
 
 
 
@@ -64,7 +68,12 @@ typedef struct {
 } Scope;
 
 
-void interpretor_create_scope(){
+void interpretor_create_scope(uint32_t size){
+    if(size == 0){
+        size = 10;
+    }
+
+
     if(interpret.stackFrames->size == MAX_SCOPE_DEPTH - 1){
         interpretor_throw_error("Maximum scope depth of %d exceeded\n", MAX_SCOPE_DEPTH);
     }
@@ -73,12 +82,12 @@ void interpretor_create_scope(){
     //create global scope 
     if(stack_is_empty(interpret.stackFrames)){
         allocator_create(&result->alloc, sizeof(ClassInstance), 32);
-        result->variables = hash_map_create(32, delete_class_instance);
+        result->variables = hash_map_create(size, delete_class_instance);
         result->expressionOffset = interpretor_save_expression();
         stack_push(interpret.stackFrames, Scope*, result);
     } else{
         allocator_create(&result->alloc, sizeof(ClassInstance), 10);
-        result->variables = hash_map_create(10, delete_class_instance); 
+        result->variables = hash_map_create(size, delete_class_instance); 
         result->expressionOffset = interpretor_save_expression();
         stack_push(interpret.stackFrames, Scope*, result);
     }
@@ -90,6 +99,12 @@ void interpretor_delete_scope(){
     hash_map_delete(s->variables);
     interpretor_restore_expression(s->expressionOffset);
     allocator_delete(&s->alloc);
+
+    if(s->variables != NULL){
+        arena_pop(); //removes var data
+        arena_pop(); //removes var hashmap 
+    }
+    
     free(s);
 } 
 
@@ -183,6 +198,7 @@ typedef ClassInstance* (*NativeFunc)(FuncArgs*);
 typedef struct {
     ArrayList* args;
     BlockStmt* body;
+    int varCount;
 } UserFunc;
 
 typedef struct {
@@ -208,6 +224,7 @@ void interpretor_create_function(FunctionStmt* func) {
    funcdef->isNative = false;
    funcdef->funcBody.user.body = (BlockStmt*)func->body;
    funcdef->funcBody.user.args = func->parameters;
+   funcdef->funcBody.user.varCount = func->varCount;
    hash_map_add_entry(interpret.functions, func->identifier, funcdef);
 }
 
@@ -220,8 +237,8 @@ void create_native_func(HashMap *map, const char* name, int argCount, NativeFunc
     hash_map_add_entry(map, string_from_const_str(name), funcdef);
 }
 
-void create_functions(){
-    interpret.functions = hash_map_create(30, delete_funcions);
+void create_functions(uint32_t func_count){
+    interpret.functions = hash_map_create((func_count + NATIVE_FUNC_COUNT) * 2, delete_funcions);
     create_native_func(interpret.functions, "print", 1, print);
     create_native_func(interpret.functions, "abs", 1, _abs);
     create_native_func(interpret.functions, "bin", 1, bin);
@@ -257,7 +274,7 @@ ClassInstance* interpretor_call_function(String* name, FuncArgs args){
         return func->funcBody.native(&args);
     }
 
-    interpretor_create_scope();
+    interpretor_create_scope(func->funcBody.user.varCount);
     Scope* local_scope = stack_peek(interpret.stackFrames, Scope*);
     ClassInstance* result = None;
     if(setjmp(local_scope->start) == 0){
@@ -344,15 +361,15 @@ static void delete_classes(void* class){
 }
 
 
-void interpt_stmts(File* file, ArrayList* stmts){
-    interpret.f = file;
+void interpt_stmts(ParserResult p_res){
+    interpret.f = p_res.file;
     //call stack is going to be 255 for now
     stack_create(interpret.stackFrames, Scope*, MAX_SCOPE_DEPTH);
-    interpretor_create_scope();
+    interpretor_create_scope(p_res.varDefc);
     allocator_create(&interpret.expressionAllocator, sizeof(ClassInstance), 64);
     allocator_create(&interpret.functionAllocator, sizeof(Function), 20);
     allocator_create(&interpret.methodAllocator, sizeof(Method), 100);
-    create_functions();
+    create_functions(p_res.funcDefc);
 
     interpret.classes = hash_map_create(20, delete_classes);
 
@@ -361,6 +378,7 @@ void interpt_stmts(File* file, ArrayList* stmts){
     create_none_class();
     create_str_class();
 
+    ArrayList* stmts = p_res.statements;
 
     for(int i = 0; i < array_list_size(stmts); i++){
         Statement* current_stmt = array_list_get(stmts, Statement*, i);
@@ -369,14 +387,13 @@ void interpt_stmts(File* file, ArrayList* stmts){
     }
 
 
-
-
-
     //cleanup 
     for(int i = 0; i < array_list_size(stmts); i++){
         Statement* current_stmt = array_list_get(stmts, Statement*, i);
         delete_statement(current_stmt);
     }
+
+
     array_list_delete(stmts);
     while(!stack_is_empty(interpret.stackFrames)){
         interpretor_delete_scope();
