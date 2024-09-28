@@ -1,10 +1,13 @@
 #include "hashmap.h"
 #include "stringtype.h"
+#include "arena.h"
+
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include <time.h>
 
 
 
@@ -27,6 +30,9 @@ typedef struct {
 
 static unsigned int find_prime(unsigned int cap){
     //make sure cap is odd so we can skip over all evens
+    if(cap < 5){
+        cap = 7;
+    }
     if(cap % 2 == 0) cap++;
     for(int i = cap; i < LARGEST_PRIME; i+=2){
         bool isprime = true;
@@ -47,14 +53,14 @@ HashMap* hash_map_create(unsigned int capacity, delete_func delete){
         fprintf(stderr, "Failed to create hashmap invalid size");
         return NULL;
     }
-    HashMap* result = malloc(sizeof(HashMap));
+    HashMap* result = arena_alloc(sizeof(HashMap));
     if(result == NULL) return result;
     result->capacity = capacity;
     result->size = 0;
     result->delete = delete;
     result->data = NULL;
-    srand(4);
-    result->data = calloc(capacity, sizeof(HashEntry*));
+    result->data = arena_alloc(sizeof(HashEntry*) * capacity); 
+    memset(result->data, 0, sizeof(HashEntry*) * capacity);
     result->p = find_prime(result->capacity);
     result->a = rand() % (result->p - 1) + 1;
     result->b = rand() % (result->p - 1);
@@ -78,11 +84,10 @@ void hash_map_delete(HashMap* map){
             free(curr);
             map->size--;
             curr = temp;
+            
         }
         if(map->size == 0) break;
     }
-    free(map->data);
-    free(map);
 }
 
 //performs cyclic shift has function
@@ -145,49 +150,11 @@ static void add_entry(HashMap *map, unsigned int index, HashEntry* entry){
 }
 
 
-static void hash_map_resize(HashMap* map, unsigned int new_cap){
-    unsigned int old_cap = map->capacity;
-    unsigned int old_size = map->size;
-    map->capacity = new_cap;
-
-    map->p = find_prime(new_cap);
-    map->a = rand() % (map->p - 1) + 1;
-    map->b = rand() % (map->p - 1);
-
-    HashEntry **old_data = (HashEntry**)map->data;
-
-    //allocating new block 
-    map->data = calloc(map->capacity, sizeof(HashEntry*));
-
-    //copy old block to new block 
-    for(int i = 0; i < old_cap; i++){
-        HashEntry* curr = old_data[i];
-        while(curr != NULL){
-            HashEntry* temp = (HashEntry*)curr->next;
-            curr->next = NULL;
-            unsigned int new_hash = compression(map, hash(curr->key));
-            add_entry(map,new_hash, curr); 
-            old_size--;
-            curr = temp;
-        }
-        if(old_size == 0) break;
-    }
-    free(old_data);
-}
-
 
 void hash_map_add_entry(HashMap* map, String* key, void* value){
     //an expensize operation so try to avoid 
     if(map->size == map->capacity){
-        if(map->capacity == MAX_HASHMAP_SIZE){
-            fprintf(stderr, "HashMap exceeds maxinum size of %d\n", MAX_HASHMAP_SIZE);
-            return;
-        }
-        int new_size = map->capacity * 2;
-        if(new_size > MAX_HASHMAP_SIZE){
-            new_size = MAX_HASHMAP_SIZE;
-        }
-        hash_map_resize(map, new_size);
+        fprintf(stderr, "Warning: Hashmap is full\n");
     }
 
     unsigned int index = compression(map, hash(key));
