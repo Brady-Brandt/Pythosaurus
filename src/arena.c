@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdnoreturn.h>
+#include <string.h>
 #include <time.h>
 
 
@@ -13,6 +14,12 @@ typedef struct{
     uint64_t cap; //the total amount of data it can hold 
     void* block;
 } Arena;
+
+
+typedef struct {
+    void* data;
+    uint32_t size;
+} BlockEntry;
 
 
 
@@ -60,7 +67,7 @@ void memory_init() {
 }
 
 
-#define BLOCK_FOOTER sizeof(uint32_t)
+#define BLOCK_FOOTER sizeof(uint64_t)
 
 //simple linear stack allocator
 //this is only going to be used for objects 
@@ -74,20 +81,20 @@ void* arena_alloc(size_t size){
 
     //going to store the size of the block after the data in a 32 bit integer 
     //this is so we can easily pop data of arbitary sizes out of the structure  
-    *((uint32_t*)(res + size)) = size;
+    *((uint64_t*)(res + size)) = size;
     global_arena.size += size + BLOCK_FOOTER;
     return res;
 }
 
 void* arena_peek(){
     if(global_arena.size == 0) return NULL;
-    uint32_t data_size = *((uint32_t*)(global_arena.block + global_arena.size - BLOCK_FOOTER));
+    uint64_t data_size = *((uint64_t*)(global_arena.block + global_arena.size - BLOCK_FOOTER));
     return global_arena.block + global_arena.size - BLOCK_FOOTER - data_size;
 }
 
 void* arena_pop(){
     if(global_arena.size == 0) return NULL;
-    uint32_t data_size = *((uint32_t*)(global_arena.block + global_arena.size - BLOCK_FOOTER));
+    uint64_t data_size = *((uint64_t*)(global_arena.block + global_arena.size - BLOCK_FOOTER));
     void* res = global_arena.block + global_arena.size - BLOCK_FOOTER - data_size;
     global_arena.size -= (data_size + BLOCK_FOOTER);
     return res;
