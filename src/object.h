@@ -1,6 +1,7 @@
 #pragma once 
 
 #include "arraylist.h"
+#include "array.h"
 #include "hashmap.h"
 #include "stringtype.h"
 #include <stdbool.h>
@@ -23,9 +24,9 @@ typedef enum {
 typedef struct {
     NativeClassType type;
     const char* name;
-    ArrayList* superClass;
-    ArrayList* methods;
-    ArrayList* staticVars;
+    ConstArray* superClass;
+    ConstArray* methods;
+    ConstArray* staticVars;
 } NativeClass;
 
 
@@ -130,12 +131,11 @@ static inline void* get_primitive(ClassInstance* self){
 
 #define ADD_NATIVE_METHOD(list, str_name, func_ptr, arg_cnt, isSelf) \
     do { \
-        NativeMethodInfo mi; \
-        mi.name = str_name; \
-        mi.method = func_ptr; \
-        mi.self = isSelf; \
-        mi.argCount = arg_cnt; \
-        array_list_append(list,NativeMethodInfo, mi); \
+        NativeMethodInfo *mi = &array_get(list, NativeMethodInfo, list->size++); \
+        mi->name = str_name; \
+        mi->method = func_ptr; \
+        mi->self = isSelf; \
+        mi->argCount = arg_cnt; \
     } while(0)
 
 extern const char* DUNDER_METHODS[73];

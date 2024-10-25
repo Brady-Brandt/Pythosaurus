@@ -1,8 +1,9 @@
 #include "object.h"
-#include "arraylist.h"
+#include "array.h"
 #include "hashmap.h"
 #include "interpret.h"
 #include "stringtype.h"
+#include "arena.h"
 
 #include <string.h>
 #include <limits.h>
@@ -115,10 +116,17 @@ const char* class_get_name(ClassInstance* self){
 } 
 
 
+//this is called directly by the interpretor 
+//for example a + b, if a & b are both primitive types, the interpretor will call this function 
+//doing this we can guarentee that the char* passed in the function will be equal to the one 
+//we have stored in our methods array 
+//If the user calls the method a.__add__(b), the strings will be stored in different stops 
+//so we can't compare pointers
+//If users directly call dunder methods for primitive types, it will be slower than if the interpretor calls them
 ClassInstance* call_native_method(ClassInstance* self, const char* name, MethodArgs* args){
-    ArrayList* methods = self->classType->native->methods;
-    for(int i = 0; i < methods->size; i++){
-        NativeMethodInfo m = array_list_get(methods, NativeMethodInfo, i);
+    ConstArray* methods = self->classType->native->methods;
+    for(int i = 0; i < array_size(methods); i++){
+        NativeMethodInfo m = array_get(methods, NativeMethodInfo, i);
         //can just compare pointers 
         //since we use the same ptr for all native dunder methods 
         if(name == m.name){
@@ -127,13 +135,13 @@ ClassInstance* call_native_method(ClassInstance* self, const char* name, MethodA
     }
 
     if(self->classType->native->superClass != NULL){
-        ArrayList* super_class = self->classType->native->superClass;
+        ConstArray* super_class = self->classType->native->superClass;
 
-        for(int i =0; i < super_class->size; i++){
-            Class* c = array_list_get(super_class, Class*, i);
+        for(int i = 0; i < array_size(super_class); i++){
+            Class* c = array_get(super_class, Class*, i);
             methods = c->native->methods;
-            for(int i = 0; i < methods->size; i++){
-                NativeMethodInfo m = array_list_get(methods, NativeMethodInfo, i);
+            for(int j = 0; j < array_size(methods); j++){
+                NativeMethodInfo m = array_get(methods, NativeMethodInfo, j);
                 if(name == m.name){
                     return m.method(args);
                 }
@@ -190,15 +198,15 @@ static ClassInstance* repr_notimplemeted(MethodArgs* args){
 
 void create_none_class(){
     PRIM_TYPE_NONE.isNative = true;
-    PRIM_TYPE_NONE.native = malloc(sizeof(NativeClass));
+    PRIM_TYPE_NONE.native = const_pool_alloc(sizeof(NativeClass));
     PRIM_TYPE_NONE.native->superClass = NULL; 
     PRIM_TYPE_NONE.native->name = "none";
     PRIM_TYPE_NONE.native->staticVars = NULL;
     PRIM_TYPE_NONE.native->type = NATIVE_CLASS_NONE;
     PRIM_TYPE_NONE.native->methods = NULL;
     PRIM_TYPE_NONE.isMutable = true; //technically not, but there should only be one None instance
-    ArrayList* none_list;
-    array_list_create_cap(none_list, NativeMethodInfo, 4);
+    ConstArray* none_list;
+    const_array_create(none_list, NativeMethodInfo, 4);
 
     ADD_NATIVE_METHOD(none_list, __REPR__, repr_none, 1, true);
     ADD_NATIVE_METHOD(none_list, __EQ__, eq_none, 2, true);
@@ -209,7 +217,7 @@ void create_none_class(){
 
 
     PRIM_TYPE_NOT_IMPLEMENTED.isNative = true;
-    PRIM_TYPE_NOT_IMPLEMENTED.native = malloc(sizeof(NativeClass));
+    PRIM_TYPE_NOT_IMPLEMENTED.native = const_pool_alloc(sizeof(NativeClass));
     PRIM_TYPE_NOT_IMPLEMENTED.native->superClass = NULL; 
     PRIM_TYPE_NOT_IMPLEMENTED.native->name = "notimplemented";
     PRIM_TYPE_NOT_IMPLEMENTED.native->staticVars = NULL;
@@ -217,9 +225,9 @@ void create_none_class(){
     PRIM_TYPE_NOT_IMPLEMENTED.native->methods = NULL;
 
     PRIM_TYPE_NOT_IMPLEMENTED.isMutable = true; //same situation None
-    ArrayList* not_impl_list;
+    ConstArray* not_impl_list;
 
-    array_list_create_cap(not_impl_list, NativeMethodInfo, 1);
+    const_array_create(not_impl_list, NativeMethodInfo, 1);
 
     ADD_NATIVE_METHOD(not_impl_list, __REPR__, repr_notimplemeted, 1, true);
     
@@ -275,17 +283,4 @@ ClassInstance* new_str(String* val){
     result.classType = &PRIM_TYPE_STR;
     return interpretor_alloc_expr(result);
 }
-
-
-void delete_native_class(NativeClass *class){
-    if(class->superClass != NULL){
-        array_list_delete(class->superClass);
-    }
-    array_list_delete(class->methods);
-    free(class);
-}
-
-
-
-
 

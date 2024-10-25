@@ -1,6 +1,8 @@
+#include "array.h"
 #include "object.h"
 #include "interpret.h"
 #include "stringtype.h"
+#include "arena.h"
 
 #include <math.h>
 #include <time.h>
@@ -219,7 +221,7 @@ static ClassInstance* __trunc__(MethodArgs* args){
 
 void create_float_class(){
     PRIM_TYPE_FLOAT.isNative = true;
-    PRIM_TYPE_FLOAT.native = malloc(sizeof(NativeClass));
+    PRIM_TYPE_FLOAT.native = const_pool_alloc(sizeof(NativeClass));
     PRIM_TYPE_FLOAT.native->superClass = NULL; 
     PRIM_TYPE_FLOAT.native->name = "float";
     PRIM_TYPE_FLOAT.native->staticVars = NULL;
@@ -227,8 +229,8 @@ void create_float_class(){
     PRIM_TYPE_FLOAT.native->methods = NULL;
     PRIM_TYPE_FLOAT.isMutable = false;
 
-    ArrayList* list;
-    array_list_create_cap(list, NativeMethodInfo, 40);    
+    ConstArray* list;
+    const_array_create(list, NativeMethodInfo, 28);    
     ADD_NATIVE_METHOD(list,__ABS__,__abs__,1, true);
     ADD_NATIVE_METHOD(list,__ADD__,__add__,2, true);
     ADD_NATIVE_METHOD(list,__BOOL__,__bool__,1, true);

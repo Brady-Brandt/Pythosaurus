@@ -1,7 +1,8 @@
+#include "array.h"
 #include "object.h"
-#include "arraylist.h"
 #include "interpret.h"
 #include "stringtype.h"
+#include "arena.h"
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -210,15 +211,15 @@ static ClassInstance* __repr__(MethodArgs* args){
 
 void create_str_class(){
     PRIM_TYPE_STR.isNative = true;
-    PRIM_TYPE_STR.native = malloc(sizeof(NativeClass));
+    PRIM_TYPE_STR.native = const_pool_alloc(sizeof(NativeClass));
     PRIM_TYPE_STR.native->superClass = NULL; 
     PRIM_TYPE_STR.native->name = "str";
     PRIM_TYPE_STR.native->staticVars = NULL;
     PRIM_TYPE_STR.native->type = NATIVE_CLASS_STR;
     PRIM_TYPE_STR.native->methods = NULL; 
     PRIM_TYPE_STR.isMutable = false;
-    ArrayList* list;
-    array_list_create_cap(list, NativeMethodInfo, 50);
+    ConstArray* list;
+    const_array_create(list, NativeMethodInfo, 16);
 
     ADD_NATIVE_METHOD(list,__REPR__,__repr__, 1, true);
     ADD_NATIVE_METHOD(list,__ADD__,__add__, 2, true);
