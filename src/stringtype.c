@@ -12,7 +12,7 @@ String* string_from_const_str(const char* str){
     void* data = const_pool_alloc(sizeof(String) + str_len + 1);
     String* result = data;
     result->size = str_len;
-    result->data = (char*)(data + sizeof(String));
+    result->data = (char*)((char*)data + sizeof(String));
     strcpy(get_str(result), str);
     return result;
 }
@@ -23,7 +23,7 @@ String* string_from_str(char* str){
     void* data = malloc(sizeof(String) + str_len + 1);
     String* result = data;
     result->size = str_len;
-    result->data = (char*)(data + sizeof(String));
+    result->data = (char*)((char*)data + sizeof(String));
     strcpy(get_str(result), str);
     return result;
 }
@@ -76,7 +76,7 @@ String* string_concat(String* s1, String* s2){
     void* data = malloc(sizeof(String) + size + 1);
     String* result = data;
     result->size = size;
-    result->data = (char*)(data + sizeof(String));
+    result->data = (char*)((char*)data + sizeof(String));
     strcpy(get_str(result),get_str(s1)); 
     strcat(get_str(result), get_str(s2)); 
     return result;
