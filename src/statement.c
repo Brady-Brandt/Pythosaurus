@@ -7,6 +7,7 @@
 #include "tokenizer.h"
 
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -363,6 +364,12 @@ static Statement* continue_statement(Parser *p){
 //combine these two statements because parsing them is almost the exact same 
 static Statement* global_del_statement(Parser *p, StatementType stype){
     uint32_t line = p->currentToken.line;
+
+    bool is_global = true;
+    if(p->currentToken.type == TOK_GLOBAL){
+        is_global = true;
+    }
+
     parser_next_token(p); //consume either the Global || Del keyword
     ArrayList* vars;
     array_list_create_cap(vars, Expr*, 2);
@@ -380,6 +387,14 @@ static Statement* global_del_statement(Parser *p, StatementType stype){
 
     if(vars->size == 0){
         parser_new_error(p, "Expected at least one value");
+    }
+
+    if(is_global){
+       p->funcVarc += vars->size;
+       //when calculating a the number of variables in global 
+       //scope, when take p->varDefc - p->funcVarc  
+       //to preserve the amount in global scope we need vars->size * 2
+       p->varDefc += vars->size * 2;
     }
 
     parser_consume_token(p, TOK_NEW_LINE, "Missing new line");
