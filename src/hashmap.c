@@ -80,8 +80,6 @@ void hash_map_delete(HashMap* map){
             } else {
                 map->delete(curr->value);
             }
-            //free the entry 
-            free(curr);
             map->size--;
             curr = temp;
             
@@ -134,8 +132,6 @@ static void add_entry(HashMap *map, unsigned int index, HashEntry* entry){
                 } else{
                     prev->next = (struct HashEntry*)entry;
                 }
-                //free the entry pointer
-                free(curr);
                 return;
             }
             if(curr->next == NULL){
@@ -152,13 +148,12 @@ static void add_entry(HashMap *map, unsigned int index, HashEntry* entry){
 
 
 void hash_map_add_entry(HashMap* map, String* key, void* value){
-    //an expensize operation so try to avoid 
     if(map->size == map->capacity){
         fprintf(stderr, "Warning: Hashmap is full\n");
     }
 
     unsigned int index = compression(map, hash(key));
-    HashEntry* entry = malloc(sizeof(HashEntry));
+    HashEntry* entry = arena_alloc(sizeof(HashEntry));
     entry->key = key;
     entry->value = value;
     entry->next = NULL;
@@ -182,7 +177,6 @@ void* hash_map_delete_entry(HashMap *map, String* key){
                 map->data[index] = curr->next;
             }
             void* value = curr->value;
-            free(curr);
             curr = NULL;
             map->size--;
             return value;
