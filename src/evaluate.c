@@ -16,52 +16,55 @@
 #include <string.h>
 
 
-static ClassInstance* Literal_to_class(LiteralExpr* expr){
+static void literal_to_class(LiteralExpr* expr){
     switch (expr->litType) {
         case LIT_INTEGER:
-            return new_integer(expr->integer);
+            new_integer(expr->integer);
+            break;
         case LIT_FLOAT:
-            return new_float(expr->_float);
+            new_float(expr->_float);
+            break;
         case LIT_BOOL:
-            return new_bool(expr->boolean);
+             new_bool(expr->boolean);
+            break;
         case LIT_STRING:
-            return new_str(expr->string);
+             new_str(expr->string);
+            break;
         case LIT_NONE:
-            return None;
+            interpretor_stack_push(None);
         default:
             interpretor_throw_error("Not implemented yet"); 
     }
 }
 
 
-static ClassInstance* perform_binary_operation(const char* method, ClassInstance* a, ClassInstance* b){
-    MethodArgs args;
-    args.args[0] = a;
-    args.args[1] = b;
+static void perform_binary_operation(const char* method){
+    Args args;
     args.count = 2;
-    args.self = true;
-    ClassInstance* res = call_native_method(a, method, &args);
+
+    call_native_method(method, &args);
+    ClassInstance* res = interpretor_stack_peek();
     if(res == NotImplemented){
-        args.args[0] = b;
-        args.args[1] = a;
-        res = call_native_method(b, method, &args);
+        //pop not implemented off stack and try the method again 
+        interpretor_stack_pop();
+        //swap a & b to see if b has a method defined 
+        interpretor_stack_swap_two();
+        call_native_method(method, &args);
+        res = interpretor_stack_peek();
         if(res == NotImplemented){
             interpretor_throw_error("Method not %s not defined");
         }
     }
-    return res;
 }
 
-static ClassInstance* perform_unary_operation(const char* method, ClassInstance* a){
-    MethodArgs args;
-    args.args[0] = a;
+static void perform_unary_operation(const char* method){
+    Args args;
     args.count = 1;
-    args.self = true;
-    ClassInstance* res = call_native_method(a, method, &args);
+    call_native_method(method, &args);
+    ClassInstance* res = interpretor_stack_peek();
     if(res == NotImplemented){
         interpretor_throw_error("Method not %s not defined");
     } 
-    return res;
 }
 
 
@@ -81,42 +84,43 @@ static bool fast_as_bool(ClassInstance* s){
 }
 
 
-static void perform_inplace_operation(const char* imethod, const char* reg, String* var, ClassInstance* b){
-
-    ClassInstance* self = interpretor_get_var(var);
-
+static void perform_inplace_operation(const char* imethod, const char* reg, String* var){ 
+    Class* type = interpretor_stack_get_class_type(2);
     //first result is going to attempt to perform i dunder methods ie iadd,isub 
-    if(self->classType->isMutable){
-        MethodArgs args;
-        args.args[0] = self;
-        args.args[1] = b;
+    if(type->isMutable){
+        Args args;
         args.count = 2;
-        args.self = true;
-        ClassInstance* res = call_native_method(self, imethod, &args);
+        call_native_method(imethod, &args);
+        ClassInstance* res = interpretor_stack_peek();
         if(res != NotImplemented) return;
+        //pop NotImplemented off top of the stack 
+        interpretor_stack_pop();
     }
-
-    ClassInstance* res = perform_binary_operation(reg, self, b);
+    perform_binary_operation(reg);
+    ClassInstance* res = interpretor_stack_pop();
     interpretor_assign_var(var, res);
 }
 
 
 
-static ClassInstance* evaluate_unary_expression(Expr* expr){
+static void evaluate_unary_expression(Expr* expr){
    UnaryExpr* uexpr = (UnaryExpr*)expr;
-   ClassInstance* right = evaluate_expression(uexpr->right);
-
+   evaluate_expression(uexpr->right);
    switch (uexpr->op) {
         case TOK_BIT_NOT:
-            return perform_unary_operation(__INVERT__, right);
+            perform_unary_operation(__INVERT__);
+            break;
         case TOK_SUB:
-            return perform_unary_operation(__NEG__, right);
+            perform_unary_operation(__NEG__);
+            break;
         case TOK_ADD:
-            return perform_unary_operation(__POS__, right);
+            perform_unary_operation(__POS__);
+            break;
         case TOK_NOT: {
-            ClassInstance* b = perform_unary_operation(__BOOL__, right);
+            perform_unary_operation(__BOOL__);
+            ClassInstance* b = interpretor_stack_peek();
             b->pbool = !b->pbool;
-            return b;
+            break;
         }
         default:
             interpretor_throw_error("Invalid unary operator %s\n", get_token_type(uexpr->op));
@@ -125,82 +129,89 @@ static ClassInstance* evaluate_unary_expression(Expr* expr){
 
 
 
-static ClassInstance* evaluate_binary_expression(Expr* expr) {
+static void evaluate_binary_expression(Expr* expr) {
     BinaryExpr* bexpr = (BinaryExpr*)expr;
-    ClassInstance* left = evaluate_expression(bexpr->left); 
-
+    evaluate_expression(bexpr->left); 
     //if the left side of an and expression is false 
     //the whole expression is false
     if(bexpr->op == TOK_AND){
-        ClassInstance* b = perform_unary_operation(__BOOL__, left);
+        perform_unary_operation(__BOOL__);
+        ClassInstance* b = interpretor_stack_peek();
         if(!b->pbool){
-            return b;
+            return;
         }
+        //if it is true we pop it off because we don't care about it 
+        // a and b 
+        // if a is true, then the result will depend on b 
+        interpretor_stack_pop(); 
     } else if (bexpr->op == TOK_OR) {
-        ClassInstance* b = perform_unary_operation(__BOOL__, left);
+        perform_unary_operation(__BOOL__);
+        ClassInstance* b = interpretor_stack_peek();
         if(b->pbool){
-            return b;
+            return;
         } 
+        interpretor_stack_pop(); 
     }
 
-    ClassInstance* right = evaluate_expression(bexpr->right); 
+    evaluate_expression(bexpr->right); 
     switch (bexpr->op) {
         case TOK_ADD:
-            return perform_binary_operation(__ADD__, left, right);
+            perform_binary_operation(__ADD__);
             break;
         case TOK_SUB:
-            return perform_binary_operation(__SUB__, left, right);
+            perform_binary_operation(__SUB__);
             break;
         case TOK_MUL:
-            return perform_binary_operation(__MUL__, left, right);
+            perform_binary_operation(__MUL__);
             break;
         case TOK_DIV:
-            return perform_binary_operation(__TRUEDIV__, left, right);
+            perform_binary_operation(__TRUEDIV__);
             break;
         case TOK_MOD:
-            return perform_binary_operation(__MOD__, left, right);
+            perform_binary_operation(__MOD__);
             break;
         case TOK_FLOOR_DIV:
-            return perform_binary_operation(__FLOORDIV__, left, right);
+            perform_binary_operation(__FLOORDIV__);
             break;
         case TOK_EXP:
-            return perform_binary_operation(__POW__, left, right);
+            perform_binary_operation(__POW__);
             break;
         case TOK_AND: 
         case TOK_OR:
-            return perform_unary_operation(__BOOL__, right);
+            perform_unary_operation(__BOOL__);
+            break;
         case TOK_LESS_THAN:
-            return perform_binary_operation(__LT__, left, right);
+            perform_binary_operation(__LT__);
             break;
         case TOK_GREATER_THAN:
-            return perform_binary_operation(__GT__, left, right);
+            perform_binary_operation(__GT__);
             break;
         case TOK_LESS_EQUAL:
-            return perform_binary_operation(__LE__, left, right);
+            perform_binary_operation(__LE__);
             break;
         case TOK_GREATER_EQUAL:
-            return perform_binary_operation(__GE__, left, right);
+            perform_binary_operation(__GE__);
             break;
         case TOK_EQUAL:
-            return perform_binary_operation(__EQ__, left, right);
+            perform_binary_operation(__EQ__);
             break;
         case TOK_NOT_EQUAL:
-            return perform_binary_operation(__NE__, left, right);
+            perform_binary_operation(__NE__);
             break;
         case TOK_BIT_AND:
-            return perform_binary_operation(__AND__, left, right);
+            perform_binary_operation(__AND__);
             break;
         case TOK_BIT_OR:
-            return perform_binary_operation(__OR__, left, right);
+            perform_binary_operation(__OR__);
             break;
         case TOK_BIT_XOR:
-            return perform_binary_operation(__XOR__, left, right);
+            perform_binary_operation(__XOR__);
             break;
         case TOK_LEFT_SHIFT:
-            return perform_binary_operation(__LSHIFT__, left, right);
+            perform_binary_operation(__LSHIFT__);
             break;
         case TOK_RIGHT_SHIFT:
-            return perform_binary_operation(__RSHIFT__, left, right);
+            perform_binary_operation(__RSHIFT__);
             break;
         default:
             interpretor_throw_error("Invalid binary operator %s\n", get_token_type(bexpr->op));
@@ -208,43 +219,44 @@ static ClassInstance* evaluate_binary_expression(Expr* expr) {
 }
 
 static void evaluate_assignop_stmt(String* var, TokenType op, Expr* val){
-    ClassInstance* right = evaluate_expression(val);
+    interpretor_push_var(var);
+    evaluate_expression(val);
     switch (op) {
         case TOK_ADD_ASSIGN:
-            perform_inplace_operation(__IADD__, __ADD__, var, right);
+            perform_inplace_operation(__IADD__, __ADD__, var);
 			break;
         case TOK_SUB_ASSIGN:
-            perform_inplace_operation(__ISUB__, __SUB__, var, right);
+            perform_inplace_operation(__ISUB__, __SUB__, var);
 			break;
         case TOK_MUL_ASSIGN:
-            perform_inplace_operation(__IMUL__, __MUL__, var, right);
+            perform_inplace_operation(__IMUL__, __MUL__, var);
 			break;
         case TOK_DIV_ASSIGN:
-            perform_inplace_operation(__ITRUEDIV__, __TRUEDIV__, var, right);
+            perform_inplace_operation(__ITRUEDIV__, __TRUEDIV__, var);
 			break;
         case TOK_MOD_ASSIGN:
-            perform_inplace_operation(__IMOD__, __MOD__, var, right);
+            perform_inplace_operation(__IMOD__, __MOD__, var);
 			break;
         case TOK_FLOOR_DIV_ASSIGN:
-            perform_inplace_operation(__IFLOORDIV__, __FLOORDIV__, var, right);
+            perform_inplace_operation(__IFLOORDIV__, __FLOORDIV__, var);
 			break;
         case TOK_EXP_ASSIGN:
-            perform_inplace_operation(__IPOW__, __POW__, var, right);
+            perform_inplace_operation(__IPOW__, __POW__, var);
 			break;
         case TOK_BIT_AND_ASSIGN:
-            perform_inplace_operation(__IAND__, __AND__, var, right);
+            perform_inplace_operation(__IAND__, __AND__, var);
 			break;
         case TOK_BIT_OR_ASSIGN:
-            perform_inplace_operation(__IOR__, __OR__, var, right);
+            perform_inplace_operation(__IOR__, __OR__, var);
 			break;
         case TOK_BIT_XOR_ASSIGN:
-            perform_inplace_operation(__IXOR__, __XOR__, var, right);
+            perform_inplace_operation(__IXOR__, __XOR__, var);
 			break;
         case TOK_LEFT_SHIFT_ASSIGN:
-            perform_inplace_operation(__ILSHIFT__, __LSHIFT__, var, right);
+            perform_inplace_operation(__ILSHIFT__, __LSHIFT__, var);
 			break;
         case TOK_RIGHT_SHIFT_ASSIGN:
-            perform_inplace_operation(__IRSHIFT__, __ILSHIFT__, var, right);
+            perform_inplace_operation(__IRSHIFT__, __ILSHIFT__, var);
 			break;
         default:
             interpretor_throw_error("Invalid assignment operator %s\n", get_token_type(op));
@@ -252,36 +264,42 @@ static void evaluate_assignop_stmt(String* var, TokenType op, Expr* val){
 }
 
 
-static ClassInstance* evaluate_function_expression(Expr* expr){
+static void evaluate_function_expression(Expr* expr){
     FuncExpr* fexpr = (FuncExpr*)expr;
-    FuncArgs args = {0};
+    Args args = {0};
     for(int i = 0; i < array_list_size(fexpr->args); i++){
         Expr* param = array_list_get(fexpr->args, Expr*, i);
-        ClassInstance* evaluatedParam = evaluate_expression(param);
-        func_args_add(&args, evaluatedParam);
+        args.count++;
+        evaluate_expression(param);
     }
-    return interpretor_call_function(fexpr->name, args);
+    interpretor_call_function(fexpr->name, &args);
 }
 
-ClassInstance* evaluate_expression(Expr* expression){
+void evaluate_expression(Expr* expression){
     if(expression == NULL) goto INVALID; 
     switch (expression->type) {
         case EXPR_BINARY:
-            return evaluate_binary_expression(expression);
+            evaluate_binary_expression(expression);
+            break;
         case EXPR_LITERAL:{
             LiteralExpr* lexpr = (LiteralExpr*)expression;
             //if it is a variable, we get a copy of its value 
             if(lexpr->litType == LIT_IDENTIFIER){
-                return interpretor_get_var(lexpr->identifier); 
+                interpretor_push_var(lexpr->identifier); 
+            } else{
+                literal_to_class(lexpr); 
             }
-            return Literal_to_class(lexpr); 
+            break;
         }
         case EXPR_UNARY:
-            return evaluate_unary_expression(expression);
+            evaluate_unary_expression(expression);
+            break;
         case EXPR_GROUPING:
-            return evaluate_expression(expression->expr);
+            evaluate_expression(expression->expr);
+            break;
         case EXPR_FUNC: 
-            return evaluate_function_expression(expression);
+            evaluate_function_expression(expression);
+            break;
         default:
         INVALID:
             interpretor_throw_error("Invalid Expression detected");
@@ -299,35 +317,34 @@ void evaluate_statement(Statement* statement){
     switch (statement->type) {
         case STMT_EXPR:{ 
             ExprStmt* estmt = (ExprStmt*)(statement);
-            long start = interpretor_save_expression();
             evaluate_expression(estmt->expr);
-            interpretor_restore_expression(start);
+            interpretor_stack_pop(); //remove the garbage the expression put 
             break;
         }
         case STMT_ASSIGN: {
             AssignStmt* astmt = (AssignStmt*)(statement);
             //AS OF RIGHT NOW VARIABLES ARE NOT LAZLILY ASSIGNED
-            long start = interpretor_save_expression();
-            ClassInstance* value = evaluate_expression(astmt->value);
+            evaluate_expression(astmt->value);
+            ClassInstance* value = interpretor_stack_pop();
             interpretor_assign_var(astmt->identifier, value);
-            interpretor_restore_expression(start);
             break;
         }
         case STMT_ASSIGN_OP: {
             AssignOpStmt* opstmt = (AssignOpStmt*)(statement);
-            long start = interpretor_save_expression();
             evaluate_assignop_stmt(opstmt->identifier, opstmt->op, opstmt->value);
-            interpretor_restore_expression(start);
             break;
         }
         case STMT_WHILE:{
             WhileStmt* wstmt = (WhileStmt*)(statement);
-            long start = interpretor_save_expression();
-
-            while(fast_as_bool(evaluate_expression(wstmt->condition))){
-                interpretor_restore_expression(start);
+            while(true){
+                //check the condition
+                evaluate_expression(wstmt->condition);
+                ClassInstance* condition = interpretor_stack_pop();
+                if(!fast_as_bool(condition)){
+                    break;
+                }
+  
                 BlockStmt* while_block = (BlockStmt*)wstmt->_while; 
-
                 CONTINUE_LOOP:
                 for(int i = 0; i < array_list_size(while_block->statements); i++){
                     Statement* current_statement = array_list_get(while_block->statements, Statement*, i);
@@ -344,34 +361,32 @@ void evaluate_statement(Statement* statement){
             }
             END_LOOP:
             in_loop = false;
-            interpretor_restore_expression(start);
             break;
         }
         case STMT_IF: {
             IfStmt* ifstmt = (IfStmt*)statement;
-            long if_start = interpretor_save_expression();
-            if(fast_as_bool(evaluate_expression(ifstmt->condition))){
-                interpretor_restore_expression(if_start);
+            evaluate_expression(ifstmt->condition);
+            ClassInstance* if_condition = interpretor_stack_pop();
+
+            if(fast_as_bool(if_condition)){
                 evaluate_statement(ifstmt->then);
             } else {
                 //loop through all the elif statements if there are any and evaluate them 
                 bool active_elif = false;
                 ElifStmt* curr_elif = ifstmt->elif;
                 while(curr_elif != NULL){
-                    long elif_start = interpretor_save_expression();
-                    if(fast_as_bool(evaluate_expression(curr_elif->condition))){
-                        interpretor_restore_expression(elif_start);
+                    evaluate_expression(curr_elif->condition);
+                    ClassInstance* elif_condition = interpretor_stack_pop();
+                    if(fast_as_bool(elif_condition)){
                         evaluate_statement(curr_elif->then);
                         active_elif = true;
                         break;
                     }
-                    interpretor_restore_expression(elif_start);
                     curr_elif = (ElifStmt*)curr_elif->next;
                 }
                 if(!active_elif && ifstmt->elseBranch != NULL){
                     evaluate_statement(ifstmt->elseBranch);
                 }             
-                interpretor_restore_expression(if_start);
             }
             break;
         }
@@ -386,13 +401,12 @@ void evaluate_statement(Statement* statement){
         }
         case STMT_ASSERT: {
             AssertStmt* astmt = (AssertStmt*)(statement);
-            long assert_start = interpretor_save_expression();
-            ClassInstance* temp = evaluate_expression(astmt->condition);
+            evaluate_expression(astmt->condition);
+            ClassInstance* temp = interpretor_stack_pop();
             if(fast_as_bool(temp) == false){
                 //don't have exceptions implemented yet, so we will just throw an error
                 interpretor_throw_error("AssertionError: %s", (astmt->msg == NULL) ? "" : get_str(astmt->msg));
             }
-            interpretor_restore_expression(assert_start);
             break;
         }
         case STMT_FUNC:{
@@ -402,8 +416,9 @@ void evaluate_statement(Statement* statement){
         }
         case STMT_RETURN: {
             ReturnStmt* rstmt = (ReturnStmt*)(statement);
-            ClassInstance* res = evaluate_expression(rstmt->value);
-            interpretor_return(res);
+            //the return value will be at the top of the operand stack
+            evaluate_expression(rstmt->value);
+            interpretor_return();
             break;
         }
         case STMT_BREAK: {

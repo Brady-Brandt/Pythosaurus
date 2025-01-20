@@ -1,55 +1,54 @@
 #pragma once 
-#include "interpret.h"
 #include "object.h"
 
 #define NATIVE_FUNC_COUNT 23 
 
 //returns the absolute value of a number
-ClassInstance* _abs(FuncArgs* args);
+void _abs(Args* args);
 
-ClassInstance* all(FuncArgs* args);
+void all(Args* args);
 
-ClassInstance* any(FuncArgs* args);
+void any(Args* args);
 
-ClassInstance* ascii(FuncArgs* args);
+void ascii(Args* args);
 
-ClassInstance* bin(FuncArgs* args);
+void bin(Args* args);
 
-ClassInstance* _bool(FuncArgs* args);
+void _bool(Args* args);
 
-ClassInstance* bytearray(FuncArgs* args);
+void bytearray(Args* args);
 
-ClassInstance* bytes(FuncArgs* args);
+void bytes(Args* args);
 
-ClassInstance* callable(FuncArgs* args);
+void callable(Args* args);
 
-ClassInstance* chr(FuncArgs* args);
+void chr(Args* args);
 
-ClassInstance* _float(FuncArgs* args);
+void _float(Args* args);
 
-ClassInstance* format(FuncArgs* args);
+void format(Args* args);
 
-ClassInstance* hash(FuncArgs* args);
+void hash(Args* args);
 
-ClassInstance* hex(FuncArgs* args);
+void hex(Args* args);
 
-ClassInstance* id(FuncArgs* args);
+void id(Args* args);
 
-ClassInstance* input(FuncArgs* args);
+void input(Args* args);
 
-ClassInstance* _int(FuncArgs* args);
+void _int(Args* args);
 
-ClassInstance* len(FuncArgs* args);
+void len(Args* args);
 
-ClassInstance* open(FuncArgs* args);
+void open(Args* args);
 
-ClassInstance* print(FuncArgs* args);
+void print(Args* args);
 
-ClassInstance* _round(FuncArgs* args);
+void _round(Args* args);
 
-ClassInstance* sorted(FuncArgs* args);
+void sorted(Args* args);
 
-ClassInstance* type(FuncArgs* args);
+void type(Args* args);
 
 
 

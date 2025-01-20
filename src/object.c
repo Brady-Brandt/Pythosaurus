@@ -123,19 +123,21 @@ const char* class_get_name(ClassInstance* self){
 //If the user calls the method a.__add__(b), the strings will be stored in different stops 
 //so we can't compare pointers
 //If users directly call dunder methods for primitive types, it will be slower than if the interpretor calls them
-ClassInstance* call_native_method(ClassInstance* self, const char* name, MethodArgs* args){
-    ConstArray* methods = self->classType->native->methods;
+void call_native_method(const char* name, Args* args){
+    Class* type = interpretor_stack_get_class_type(args->count);
+    ConstArray* methods = type->native->methods;
     for(int i = 0; i < array_size(methods); i++){
         NativeMethodInfo m = array_get(methods, NativeMethodInfo, i);
         //can just compare pointers 
         //since we use the same ptr for all native dunder methods 
         if(name == m.name){
-            return m.method(args);
+            m.method(args);
+            return;
         }
     }
 
-    if(self->classType->native->superClass != NULL){
-        ConstArray* super_class = self->classType->native->superClass;
+    if(type->native->superClass != NULL){
+        ConstArray* super_class = type->native->superClass;
 
         for(int i = 0; i < array_size(super_class); i++){
             Class* c = array_get(super_class, Class*, i);
@@ -143,12 +145,13 @@ ClassInstance* call_native_method(ClassInstance* self, const char* name, MethodA
             for(int j = 0; j < array_size(methods); j++){
                 NativeMethodInfo m = array_get(methods, NativeMethodInfo, j);
                 if(name == m.name){
-                    return m.method(args);
+                    m.method(args);
+                    return;
                 }
             }
         }
     }
-    return NotImplemented;
+    interpretor_stack_push(NotImplemented);
 }
 
 
@@ -175,24 +178,29 @@ void delete_class_instance(void* instance){
 }
 
 
-static ClassInstance* repr_none(MethodArgs* args){
-    return new_str(string_from_str("None"));
+static void repr_none(Args* args){
+    interpretor_stack_pop();
+    new_str(string_from_str("None"));
 }
 
-static ClassInstance* eq_none(MethodArgs* args){
-    return new_bool(__SELF__->classType == args->args[0]->classType);
+static void eq_none(Args* args){
+    ClassInstance* self = interpretor_stack_pop();
+    new_bool(self->classType == &PRIM_TYPE_NONE);
 }
 
-static ClassInstance* ne_none(MethodArgs* args){
-    return new_bool(__SELF__->classType != args->args[0]->classType);
+static void ne_none(Args* args){
+    ClassInstance* self = interpretor_stack_pop();
+    new_bool(self->classType != &PRIM_TYPE_NONE);
 }
 
-static ClassInstance* hash_none(MethodArgs* args){
-    return new_integer((long)None);
+static void hash_none(Args* args){
+    interpretor_stack_pop();
+    new_integer((long)None);
 }
 
-static ClassInstance* repr_notimplemeted(MethodArgs* args){
-    return new_str(string_from_str("NotImplemeted"));
+static void repr_notimplemeted(Args* args){
+    interpretor_stack_pop();
+    new_str(string_from_str("NotImplemeted"));
 }
 
 
@@ -208,10 +216,10 @@ void create_none_class(){
     ConstArray* none_list;
     const_array_create(none_list, NativeMethodInfo, 4);
 
-    ADD_NATIVE_METHOD(none_list, __REPR__, repr_none, 1, true);
-    ADD_NATIVE_METHOD(none_list, __EQ__, eq_none, 2, true);
-    ADD_NATIVE_METHOD(none_list, __NE__, ne_none, 2, true);
-    ADD_NATIVE_METHOD(none_list, __HASH__, hash_none, 1, true);
+    ADD_NATIVE_METHOD(none_list, __REPR__, repr_none, 1);
+    ADD_NATIVE_METHOD(none_list, __EQ__, eq_none, 2);
+    ADD_NATIVE_METHOD(none_list, __NE__, ne_none, 2);
+    ADD_NATIVE_METHOD(none_list, __HASH__, hash_none, 1);
    
     PRIM_TYPE_NONE.native->methods = none_list;
 
@@ -229,7 +237,7 @@ void create_none_class(){
 
     const_array_create(not_impl_list, NativeMethodInfo, 1);
 
-    ADD_NATIVE_METHOD(not_impl_list, __REPR__, repr_notimplemeted, 1, true);
+    ADD_NATIVE_METHOD(not_impl_list, __REPR__, repr_notimplemeted, 1);
     
     PRIM_TYPE_NOT_IMPLEMENTED.native->methods = not_impl_list;
 
@@ -250,37 +258,37 @@ void create_none_class(){
 
 
 
-ClassInstance* new_float(double val){
+void new_float(double val){
     ClassInstance result = {0};
     result.pfloat = val;
     result.refCount = 1;
     result.classType = &PRIM_TYPE_FLOAT;
-    return interpretor_alloc_expr(result);
+    interpretor_stack_push(&result);
 }
 
-ClassInstance* new_integer(long val){
+void new_integer(long val){
     ClassInstance result = {0};
     result.pint = val;
     result.refCount = 1;
     result.classType = &PRIM_TYPE_INT;
-    return interpretor_alloc_expr(result);
+    interpretor_stack_push(&result);
 }
 
 
-ClassInstance* new_bool(bool val){ 
+void new_bool(bool val){ 
     ClassInstance result = {0}; 
     result.pbool = val;
     result.refCount = 1;
     result.classType = &PRIM_TYPE_BOOL;
-    return interpretor_alloc_expr(result);
+    interpretor_stack_push(&result);
 }
 
 
-ClassInstance* new_str(String* val){
+void new_str(String* val){
     ClassInstance result = {0};
     result.pstr = val;
     result.refCount = 1;
     result.classType = &PRIM_TYPE_STR;
-    return interpretor_alloc_expr(result);
+    interpretor_stack_push(&result);
 }
 

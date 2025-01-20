@@ -8,54 +8,51 @@
 #include <math.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <time.h>
 
-#define arg(index) func_args_get(args, index)
 
-ClassInstance* print(FuncArgs* args){
-    ClassInstance* val = arg(0);
+void print(Args* args){
+    ClassInstance* val = interpretor_stack_peek();
     if(val == NULL){
         printf("None\n");
     } else {
-        MethodArgs a;
-        a.args[0] = val;
+        Args a;
         a.count = 1;
-        a.self = true;
-        ClassInstance* str = call_native_method(val, __REPR__, &a);
+        call_native_method(__REPR__, &a);
+        ClassInstance* str = interpretor_stack_pop();
         if(str == NotImplemented) interpretor_throw_error("Invalid operand for print(): %s", class_get_name(val));
         printf("%s\n", get_str(str->pstr));
         string_delete(str->pstr);
     }
-    return None;
+    interpretor_stack_push(None);
 }
 
 
 //returns the absolute value of a number
-ClassInstance* _abs(FuncArgs* args){ 
-    ClassInstance* val = arg(0);
+void _abs(Args* args){ 
+    ClassInstance* val = interpretor_stack_peek();
     if(val == NULL){
         goto INVALID_ARG;
     } else {
-        MethodArgs a;
-        a.args[0] = val;
+        Args a;
         a.count = 1;
-        a.self = true;
-        ClassInstance* res = call_native_method(val, __ABS__, &a);
+        call_native_method(__ABS__, &a);
+        ClassInstance* res = interpretor_stack_peek();
         if(res == NotImplemented) goto INVALID_ARG;
-        return res;
     } 
     INVALID_ARG:
         interpretor_throw_error("Invalid operand for abs(): %s", class_get_name(val));
 }
 
-ClassInstance* all(FuncArgs* args);
+void all(Args* args);
 
-ClassInstance* any(FuncArgs* args);
+void any(Args* args);
 
-ClassInstance* ascii(FuncArgs* args);
+void ascii(Args* args);
 
-ClassInstance* bin(FuncArgs* args){
-    ClassInstance* val = arg(0); 
+void bin(Args* args){
+    ClassInstance* val = interpretor_stack_pop(); 
     if(!is_int_class(val)){
         //TODO: CHECK FOR INDEX METHOD
         //
@@ -83,57 +80,53 @@ ClassInstance* bin(FuncArgs* args){
     String* bin_num = string_from_str(scratch_buffer_as_str());
 
     scratch_buffer_clear();
-    return new_str(bin_num);
+    new_str(bin_num);
 }
 
-ClassInstance* _bool(FuncArgs* args) { 
-    ClassInstance* val =  arg(0);
+void _bool(Args* args) { 
+    ClassInstance* val =  interpretor_stack_peek();
     if(val == NULL){
         goto INVALID_ARG;
     } else {
-        MethodArgs a;
-        a.args[0] = val;
+        Args a;
         a.count = 1;
-        a.self = true;
-        ClassInstance* res = call_native_method(val, __BOOL__, &a);
+        call_native_method(__BOOL__, &a);
+        ClassInstance* res = interpretor_stack_peek();
         if(res == NotImplemented) goto INVALID_ARG;
-        return res;
     } 
     INVALID_ARG:
         interpretor_throw_error("Invalid operand for bool()");
 }
 
-ClassInstance* bytearray(FuncArgs* args);
+void bytearray(Args* args);
 
-ClassInstance* bytes(FuncArgs* args);
+void bytes(Args* args);
 
-ClassInstance* callable(FuncArgs* args);
+void callable(Args* args);
 
-ClassInstance* chr(FuncArgs* args);
+void chr(Args* args);
 
-ClassInstance* _float(FuncArgs* args){
-    ClassInstance* val =  arg(0);
+void _float(Args* args){
+    ClassInstance* val =  interpretor_stack_peek();
     if(val == NULL){
         goto INVALID_ARG;
     } else {
-        MethodArgs a;
-        a.args[0] = val;
+        Args a;
         a.count = 1;
-        a.self = true;
-        ClassInstance* res = call_native_method(val, __FLOAT__, &a);
+        call_native_method(__FLOAT__, &a);
+        ClassInstance* res = interpretor_stack_peek();
         if(res == NotImplemented) goto INVALID_ARG;
-        return res;
     } 
     INVALID_ARG:     
         interpretor_throw_error("Invalid operand for float()");
 }
 
-ClassInstance* format(FuncArgs* args);
+void format(Args* args);
 
-ClassInstance* hash(FuncArgs* args);
+void hash(Args* args);
 
-ClassInstance* hex(FuncArgs* args) {
-    ClassInstance* val =  arg(0);
+void hex(Args* args) {
+    ClassInstance* val =  interpretor_stack_pop();
     if(!is_int_class(val)){
         //TODO: CHECK FOR INDEX METHOD
         interpretor_throw_error("Invalid operand for hex(): %s\n");
@@ -141,13 +134,13 @@ ClassInstance* hex(FuncArgs* args) {
     long* p_integer = get_primitive(val);
     long integer = *p_integer;
     String* res = string_from_va("0x%lx", integer);
-    return new_str(res);  
+    new_str(res);  
 }
 
-ClassInstance* id(FuncArgs* args);
+void id(Args* args);
 
-ClassInstance* input(FuncArgs* args){
-    ClassInstance* val = arg(0);
+void input(Args* args){
+    ClassInstance* val = interpretor_stack_pop();
     if(val == NULL || val->classType != &PRIM_TYPE_STR){ 
         interpretor_throw_error("Invalid operand for input()");
     }
@@ -162,51 +155,47 @@ ClassInstance* input(FuncArgs* args){
     }
     String* res = string_from_str(scratch_buffer_as_str());
     scratch_buffer_clear();
-    return new_str(res);
+    new_str(res);
 }
 
 
-ClassInstance* _int(FuncArgs* args){
-    ClassInstance* val =  arg(0);
+void _int(Args* args){
+    ClassInstance* val =  interpretor_stack_peek();
     if(val == NULL){
         goto INVALID_ARG;
     } else {
-        MethodArgs a;
-        a.args[0] = val;
+        Args a;
         a.count = 1;
-        a.self = true;
-        ClassInstance* res = call_native_method(val, __INT__, &a);
+        call_native_method(__INT__, &a);
+        ClassInstance* res = interpretor_stack_peek();
         if(res == NotImplemented) goto INVALID_ARG;
-        return res;
     } 
     INVALID_ARG:     
         interpretor_throw_error("Invalid operand for int()");
 }
 
-ClassInstance* len(FuncArgs* args){ 
-    ClassInstance* val =  arg(0);
+void len(Args* args){ 
+    ClassInstance* val =  interpretor_stack_peek();
     if(val == NULL){
         goto INVALID_ARG;
     } else {
-        MethodArgs a;
-        a.args[0] = val;
+        Args a;
         a.count = 1;
-        a.self = true;
-        ClassInstance* res = call_native_method(val, __LEN__, &a);
+        call_native_method(__LEN__, &a);
+        ClassInstance* res = interpretor_stack_peek();
         if(res == NotImplemented) goto INVALID_ARG;
-        return res;
     } 
     INVALID_ARG:     
         interpretor_throw_error("Invalid operand for len()");
 }
 
-ClassInstance* open(FuncArgs* args);
+void open(Args* args);
 
-ClassInstance* _round(FuncArgs* args);
+void _round(Args* args);
 
-ClassInstance* sorted(FuncArgs* args);
+void sorted(Args* args);
 
-ClassInstance* type(FuncArgs* args);
+void type(Args* args);
 
 
 

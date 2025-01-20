@@ -4,10 +4,46 @@
 #include "array.h"
 #include "hashmap.h"
 #include "stringtype.h"
+#include "statement.h"
 #include <stdbool.h>
 #include <stdint.h>
 
-#define MAX_METHOD_ARG_COUNT 10
+
+typedef struct {
+    int count;
+    //TODO: ADD kwargs and varargs
+} Args;
+
+
+typedef void (*NativeMethod)(Args*);
+
+typedef void (*NativeFunc)(Args*);
+
+typedef struct {
+    ArrayList* args;
+    BlockStmt* body;
+    int varCount;
+} UserFunc;
+
+typedef struct {
+    int argCount;
+    bool isNative;
+    union { 
+        UserFunc user;
+        NativeFunc native;
+    } funcBody;
+} Function;
+
+
+
+//this defines methods for the builtin types 
+typedef struct {
+    const char* name;
+    NativeMethod method;
+    int argCount;
+} NativeMethodInfo;
+
+
 
 typedef enum {
     NATIVE_CLASS_INT,
@@ -69,8 +105,8 @@ extern Class PRIM_TYPE_NONE;
 typedef struct {
     Class* classType;
     union {
-        HashMap* __dict__;
-        long pint;
+        HashMap* __dict__; //TODO: REPLACE WITH A DIFFERENT HASHMAP IMPLEMENTATION
+        uint64_t pint;
         double pfloat;
         bool pbool;
         String* pstr;
@@ -124,17 +160,11 @@ static inline void* get_primitive(ClassInstance* self){
 }
 
 
-#define __SELF__ args->args[0]
-#define __M_ARG__(index) args->args[index]
-
-
-
-#define ADD_NATIVE_METHOD(list, str_name, func_ptr, arg_cnt, isSelf) \
+#define ADD_NATIVE_METHOD(list, str_name, func_ptr, arg_cnt) \
     do { \
         NativeMethodInfo *mi = &array_get(list, NativeMethodInfo, list->size++); \
         mi->name = str_name; \
         mi->method = func_ptr; \
-        mi->self = isSelf; \
         mi->argCount = arg_cnt; \
     } while(0)
 
@@ -218,15 +248,6 @@ extern const char* DUNDER_METHODS[73];
 const char* class_get_name(ClassInstance* self);
 
 
-typedef struct {
-    bool self;
-    int count;
-    ClassInstance* args[MAX_METHOD_ARG_COUNT];
-    //TODO: ADD kwargs and varargs
-} MethodArgs;
-
-
-
 void create_int_class();
 
 void create_str_class();
@@ -239,17 +260,16 @@ void delete_native_class(NativeClass *class);
 
 void delete_class_instance(void* instance);
 
-ClassInstance* call_native_method(ClassInstance* self, const char* name, MethodArgs* args);
+void call_native_method(const char* name, Args* args);
 
 Class* class_new(String* name, ArrayList super_class);
 
+void new_instance(Class* type, Args* args);
 
-ClassInstance* new_instance(Class* type, MethodArgs* args);
+void new_float(double val);
 
-ClassInstance* new_float(double val);
+void new_integer(long val);
 
-ClassInstance* new_integer(long val);
+void new_bool(bool val);
 
-ClassInstance* new_bool(bool val);
-
-ClassInstance* new_str(String* val);
+void new_str(String* val);
