@@ -12,12 +12,12 @@
 typedef struct{
     uint64_t size; //how much data the arena currently holds
     uint64_t cap; //the total amount of data it can hold 
-    void* block;
+    uint8_t* block;
 } Arena;
 
 
 typedef struct {
-    void* data;
+    uint8_t* data;
     uint32_t size;
 } BlockEntry;
 
@@ -25,14 +25,14 @@ typedef struct {
 
 //these are likely going to change 
 #define SCRATCH_BUFFER_SIZE 100000
-#define GLOBAL_SIZE_START 10000
+#define GLOBAL_SIZE_START 100000
 #define CONST_SIZE_START 1000000
 
 
 
 
 typedef struct {
-    void* data;
+    char* data;
     uint32_t offset;
 } ScratchBuffer;
 
@@ -74,6 +74,7 @@ void memory_init() {
 
 void* arena_alloc(size_t size){
     if(global_arena.size + size + BLOCK_FOOTER > global_arena.cap){
+        fprintf(stderr, "Out of memory\n");
         return NULL;
     }
     
@@ -100,6 +101,15 @@ void* arena_pop(){
     return res;
 }
 
+uint64_t arena_get_offset(){
+    return global_arena.size;
+}
+
+void arena_set_offset(uint64_t offset){
+    global_arena.size = offset;
+}
+
+
 
 static void* _const_alloc(Arena* arena, size_t size){
     //just want a hard limit on the const pool for now 
@@ -108,6 +118,7 @@ static void* _const_alloc(Arena* arena, size_t size){
         fprintf(stderr, "Const pool is full\n");
         exit(EXIT_FAILURE);
     }
+
     void* res = arena->block + arena->size;
     arena->size += size;
     return res;
@@ -120,7 +131,7 @@ void* const_pool_alloc(size_t size){
 
 
 bool const_pool_contains_ptr(void* ptr){
-    return (ptr >= const_arena.block) && ptr < (const_arena.block + const_arena.cap);
+    return ((uint8_t*)ptr >= const_arena.block) && (uint8_t*)ptr < (const_arena.block + const_arena.cap);
 }
 
 

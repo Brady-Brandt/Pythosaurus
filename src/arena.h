@@ -11,6 +11,10 @@ void* arena_peek();
 
 void* arena_pop();
 
+uint64_t arena_get_offset();
+
+void arena_set_offset(uint64_t offset);
+
 void* const_pool_alloc(size_t size);
 
 //returns true if the pointer was allocated from the const pool
