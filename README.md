@@ -1,6 +1,4 @@
 # Overview
-Here’s an improved version of the description for your README:
-
 Pythosaurus is a Python-like interpreter that I developed as a personal project to explore how programming languages are constructed. 
 Python, being a complex and versatile language, provided an excellent foundation for this project.
 However, rather than replicating every aspect of Python, Pythosaurus focuses on implementing a subset of the features 
